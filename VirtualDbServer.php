@@ -30,6 +30,8 @@ class VirtualDbStatement implements Iterator {
   
   private $position;
   private $rowCount;
+  private $errorCode;
+  private $errorInfo;
   private $meta;
   private $array;
   private $db;
@@ -45,6 +47,8 @@ class VirtualDbStatement implements Iterator {
     $this->ch = $ch;
     $this->params = array();
     $this->rowCount = false;
+    $this->errorCode = '';
+    $this->errorInfo = array();
     $this->meta = array();
     $this->array = array();
     $this->attributes = $attributes;
@@ -58,8 +62,8 @@ class VirtualDbStatement implements Iterator {
 //     echo(var_export($this->params,true));
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
     if (isset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE])) {
-      unset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE]);
       $this->fetchMode = $this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE];
+      unset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE]);
     }
     $headers = array();
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
@@ -68,17 +72,27 @@ class VirtualDbStatement implements Iterator {
     $result = curl_exec($this->ch);
     $this->position = 0;
     $this->array = explode("\n",$result);
-    $this->rowCount = json_decode(array_shift($this->array));
-    $this->db->setLastInsertId(json_decode(array_shift($this->array)));
-    $this->meta = json_decode(array_shift($this->array));
-//     var_dump($this->queryString);
-//     if (preg_match('/SELECT.*Customer/',$this->queryString))
-//     if ($this->rowCount==22)
-//      {
-//        die(var_export($result,true));
-//        die(var_export($this->queryString,true).var_export($result,true));
-//      }
-    return true;
+    $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+    if ($status==200) {
+      $this->errorCode = '0000';
+      $this->errorInfo = array();
+      $this->rowCount = json_decode(array_shift($this->array));
+      $this->db->setLastInsertId(json_decode(array_shift($this->array)));
+      $this->meta = json_decode(array_shift($this->array));
+  //     var_dump($this->queryString);
+  //     if (preg_match('/SELECT.*Customer/',$this->queryString))
+  //     if ($this->rowCount==22)
+  //      {
+  //        die(var_export($result,true));
+  //        die(var_export($this->queryString,true).var_export($result,true));
+  //      }
+      $result = true;
+    } elseif ($status==400) {
+      $this->errorCode = json_decode(array_shift($this->array));
+      $this->errorInfo = json_decode(array_shift($this->array));
+      $result = false;
+    }
+    return $result;
   }
 
   public function rewind() {
@@ -155,13 +169,21 @@ class VirtualDbStatement implements Iterator {
   }
 
   public function rowCount() {
-    return count($this->array);
+    return $this->rowCount;
   }
 
   public function columnCount() {
     return count($this->meta);
   }
-
+  
+  public function errorCode() {
+    return $this->errorCode;
+  }
+  
+  public function errorInfo() {
+    return $this->errorInfo;
+  }
+  
   public function getColumnMeta($index) {
     return (array)$this->meta[$index];
   }
@@ -185,8 +207,8 @@ class VirtualDbServer
       public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
       public bool beginTransaction ( void )
       public bool commit ( void )
-      public mixed errorCode ( void )
-      public array errorInfo ( void )
+   ok public mixed errorCode ( void )
+   ok public array errorInfo ( void )
    ok public int exec ( string $statement )
    ok public mixed getAttribute ( int $attribute )
    ok public static array getAvailableDrivers ( void )
@@ -203,6 +225,7 @@ class VirtualDbServer
   private $url;
   private $dbname;
   private $lastInsertId;
+  private $lastStatement;
   private $attributes;
   private $settings;
   
@@ -221,17 +244,25 @@ class VirtualDbServer
     }
     $this->url = $parameters['host'];
     $this->dbname = $parameters['dbname'];
-    $this->lastInsertId = false;
+    $this->lastStatement = false;
     $this->attributes = $attributes;
   }
   
-  public function setLastInsertId($val) {
-    $this->lastInsertId = $val;
-  }
+  public function setLastInsertId($value) {
+    return $this->lastInsertId=$value;
+  }  
   
   public function lastInsertId() {
     return $this->lastInsertId;
-  }  
+  }
+  
+  public function errorCode() {
+    return $this->lastStatement->errorCode();
+  }
+  
+  public function errorInfo() {
+    return $this->lastStatement->errorInfo();
+  }
   
   static function getAvailableDrivers() {
     return array('mysql');
@@ -243,7 +274,7 @@ class VirtualDbServer
     $endQuote = '\'';
     if(is_array($str))
       return array_map(__METHOD__, $str);
-    if(!empty($str) && is_string($str)) {
+    if(is_string($str)) {
       $search = array('\\', "\0", "\n", "\r", "'", '"', "\x1a");
       $replace = array('\\\\', '\\0', '\\n', '\\r', "\\'", '\\"', '\\Z');
       return $startQuote.str_replace($search,$replace,$str).$endQuote;
@@ -253,12 +284,14 @@ class VirtualDbServer
   
   public function prepare($statement,$attributes = array()) {
     curl_setopt ($this->ch, CURLOPT_URL, $this->url.urlencode($statement));
-    return new VirtualDbStatement($statement, $this, $this->ch, $attributes, $this->attributes);
+    $this->lastStatement = new VirtualDbStatement($statement, $this, $this->ch, $attributes, $this->attributes);
+    return $this->lastStatement;
   }
   
   public function exec($statement) {
-    $statement = $this->prepare($statement);
-    return $statement->execute();
+    $this->lastStatement = $this->prepare($statement);
+    $this->lastStatement->execute();
+    return $this->lastStatement->rowCount();
   }
   
   public function getAttribute($index) {
