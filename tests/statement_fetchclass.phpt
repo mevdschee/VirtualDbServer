@@ -9,12 +9,12 @@ class TestElement {
     public $val;
     
     public function capitalizeKey() {
-     return ucwords($this->key);
+        return ucwords($this->key);
     }
 }
 $dbhs = array(
-  new PDO($pdo_dsn,$pdo_username,$pdo_password),
-  new VirtualDbServer($vdb_dsn,$vdb_username,$vdb_password)
+    new PDO($pdo_dsn,$pdo_username,$pdo_password),
+    new VirtualDbServer($vdb_dsn,$vdb_username,$vdb_password)
 );
 foreach ($dbhs as $dbh) { 
     echo "===".get_class($dbh)."===\n";
@@ -26,18 +26,18 @@ foreach ($dbhs as $dbh) {
     $stmt = $dbh->query($sql);
     $result = $stmt->fetchAll(PDO::FETCH_CLASS,'TestElement');
     foreach($result as $testElement) {
-      echo $testElement->capitalizeKey()."\n";
+        echo $testElement->capitalizeKey()."\n";
     }
     $stmt = $dbh->query($sql);
     $stmt->setFetchMode(PDO::FETCH_CLASS,'TestElement');
     while ($testElement = $stmt->fetch()) {
-      echo $testElement->capitalizeKey()."\n";
+        echo $testElement->capitalizeKey()."\n";
     }
     $sql = "SELECT 'TestElement',`key`,`val` FROM test";
     $stmt = $dbh->query($sql);
     $stmt->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_CLASSTYPE);
     while ($testElement = $stmt->fetch()) {
-      echo $testElement->capitalizeKey()."\n";
+        echo $testElement->capitalizeKey()."\n";
     }
 }
 

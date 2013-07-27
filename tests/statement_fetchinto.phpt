@@ -9,13 +9,13 @@ class TestElement {
     public $val;
     
     public function capitalizeKey() {
-     return ucwords($this->key);
+        return ucwords($this->key);
     }
 }
 $testElement = new TestElement();
 $dbhs = array(
-  new PDO($pdo_dsn,$pdo_username,$pdo_password),
-  new VirtualDbServer($vdb_dsn,$vdb_username,$vdb_password)
+    new PDO($pdo_dsn,$pdo_username,$pdo_password),
+    new VirtualDbServer($vdb_dsn,$vdb_username,$vdb_password)
 );
 foreach ($dbhs as $dbh) { 
     echo "===".get_class($dbh)."===\n";
@@ -27,7 +27,7 @@ foreach ($dbhs as $dbh) {
     $stmt = $dbh->query($sql);
     $stmt->setFetchMode(PDO::FETCH_INTO,$testElement);
     while ($stmt->fetch()) {
-      echo $testElement->capitalizeKey()."\n";
+        echo $testElement->capitalizeKey()."\n";
     }
 }
 
