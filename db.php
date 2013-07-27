@@ -1,4 +1,5 @@
 <?php
+require __DIR__.'/config.php';
 $f = fopen('db.log', 'a');
 ob_start();
 $query = $_GET['query'];
@@ -8,7 +9,7 @@ $serverAttrs = array();
 foreach ($headers as $name=>$value) {
   if (preg_match('/^X-Server-(.*)/',$name,$matches)) $serverAttrs[$matches[1]]=$value;
 }
-$db = new PDO('mysql:host=localhost;dbname=winksys-adu;charset=utf8', 'winksys-adu', 'winksys-adu', $serverAttrs);
+$db = new PDO($pdo_dsn,$pdo_username,$pdo_password,$serverAttrs);
 $attributes = array();
 foreach ($headers as $name=>$value) {
   if (preg_match('/^X-Statement-(.*)/',$name,$matches)) $attributes[$matches[1]]=$value;

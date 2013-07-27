@@ -1,0 +1,4 @@
+<?php
+$pdo_dsn = 'mysql:dbname=database;host=localhost';
+$pdo_username = 'username';
+$pdo_password = 'password';
