@@ -1,5 +1,5 @@
 --TEST--
-construct() function - basic test for VirtualDbServer::__construct()
+VirtualDbServer::__construct()                  @
 --FILE--
 <?php
 require __DIR__.'/../VirtualDbServer.php';

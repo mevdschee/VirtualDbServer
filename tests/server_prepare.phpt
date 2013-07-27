@@ -1,5 +1,5 @@
 --TEST--
-prepare() function - basic test for VirtualDbServer::prepare()
+VirtualDbServer::prepare()                      @
 --FILE--
 <?php
 require __DIR__.'/../VirtualDbServer.php';

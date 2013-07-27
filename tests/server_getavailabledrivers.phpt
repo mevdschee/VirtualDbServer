@@ -1,5 +1,5 @@
 --TEST--
-getAvailableDrivers() function - basic test for VirtualDbServer::getAvailableDrivers()
+VirtualDbServer::getAvailableDrivers()          @
 --FILE--
 <?php
 require __DIR__.'/../VirtualDbServer.php';
