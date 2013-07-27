@@ -36,7 +36,6 @@ class VirtualDbStatement implements Iterator {
   }*/
   
   public $queryString;
-  
   private $position;
   private $rowCount;
   private $errorCode;
@@ -54,14 +53,14 @@ class VirtualDbStatement implements Iterator {
   public function __construct($queryString,$db,$ch,$attributes=array(),$serverAttrs=array()) {
     $this->queryString = $queryString;
     $this->position = 0;
-    $this->db = $db;
-    $this->ch = $ch;
-    $this->params = array();
     $this->rowCount = false;
     $this->errorCode = '';
     $this->errorInfo = array();
     $this->meta = array();
     $this->array = array();
+    $this->db = $db;
+    $this->ch = $ch;
+    $this->params = array();
     $this->attributes = $attributes;
     $this->serverAttrs = $serverAttrs;
     $this->fetchMode = false;
@@ -281,10 +280,9 @@ class VirtualDbServer
   private $ch;
   private $url;
   private $dbname;
-  private $lastInsertId;
   private $lastStatement;
+  private $lastInsertId;
   private $attributes;
-  private $settings;
   
   public function __construct($dsn, $username = false, $password = false, $attributes = array()) {
     $this->ch = curl_init();
@@ -302,6 +300,7 @@ class VirtualDbServer
     $this->url = $parameters['host'];
     $this->dbname = $parameters['dbname'];
     $this->lastStatement = false;
+    $this->lastInsertId = false;
     $this->attributes = $attributes;
   }
   
