@@ -26,7 +26,7 @@ class VirtualDbStatement implements Iterator {
    ok public mixed fetch ([ int $fetch_style [, int $cursor_orientation = PDO::FETCH_ORI_NEXT [, int $cursor_offset = 0 ]]] )
    ok public array fetchAll ([ int $fetch_style [, mixed $fetch_argument [, array $ctor_args = array() ]]] )
       public string fetchColumn ([ int $column_number = 0 ] )
-      public mixed fetchObject ([ string $class_name = "stdClass" [, array $ctor_args ]] )
+   ok public mixed fetchObject ([ string $class_name = "stdClass" [, array $ctor_args ]] )
    ok public mixed getAttribute ( int $attribute )
    ok public array getColumnMeta ( int $column )
       public bool nextRowset ( void )
@@ -49,6 +49,7 @@ class VirtualDbStatement implements Iterator {
   private $serverAttrs;
   private $fetchMode;
   private $fetchArgument;
+  private $constructorArguments;
   
   public function __construct($queryString,$db,$ch,$attributes=array(),$serverAttrs=array()) {
     $this->queryString = $queryString;
@@ -65,6 +66,7 @@ class VirtualDbStatement implements Iterator {
     $this->serverAttrs = $serverAttrs;
     $this->fetchMode = false;
     $this->fetchArgument = false;
+    $this->constructorArguments = array();
   }
   
   public function execute ($input_parameters = false) {
@@ -114,7 +116,7 @@ class VirtualDbStatement implements Iterator {
   {
     if ($type===false) $type = $this->fetchMode;
     if ($type===false) $type = PDO::FETCH_BOTH;
-    $data = json_decode($this->current(),$type != PDO::FETCH_OBJ);
+    $data = json_decode($this->current(),true);
     if ($data===null) return false;
     $this->next();
     $result = array();
@@ -133,14 +135,16 @@ class VirtualDbStatement implements Iterator {
       //implement
     }
     if ($type == PDO::FETCH_CLASS) {
-      $result = new $this->fetchArgument;
+      $reflect = new ReflectionClass($this->fetchArgument);
+      $result = $reflect->newInstanceArgs($this->constructorArguments);
       foreach ($this->meta as $i=>$meta) {
         $property = $meta->name;
         $result->$property=$data[$i];
       }
     }
     if ($type == (PDO::FETCH_CLASS | PDO::FETCH_CLASSTYPE)) {
-      $result = new $data[0];
+      $reflect = new ReflectionClass($data[0]);
+      $result = $reflect->newInstanceArgs($this->constructorArguments);
       foreach ($this->meta as $i=>$meta) {
         if ($i>0) {
           $property = $meta->name;
@@ -175,17 +179,16 @@ class VirtualDbStatement implements Iterator {
     return $result;
   }
   
-  public function fetchObject($argument = false) {
-    if ($argument===false) $this->setFetchMode(PDO::FETCH_OBJ);
-    else $this->setFetchMode(PDO::FETCH_CLASS,$argument);
+  public function fetchObject($argument = "stdClass", $constructorArguments = array()) {
+    $this->setFetchMode(PDO::FETCH_CLASS,$argument,$constructorArguments);
     return $this->fetch();
   }
   
-  public function fetchAll($type = false, $argument = false)
+  public function fetchAll($type = false, $argument = false,$constructorArguments = array())
   {
     if ($type===false) $type = $this->fetchMode;
     if ($type===false) $type = PDO::FETCH_BOTH;
-    $this->setFetchMode($type,$argument);
+    $this->setFetchMode($type,$argument,$constructorArguments);
     $data = array();
     while (false !== ($row = $this->fetch())) {
       $data[]=$row;
@@ -246,14 +249,17 @@ class VirtualDbStatement implements Iterator {
   }
   
   public function setAttribute($index,$value) {
-    $this->attributes[$index] = $value;
+    if ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
+      $this->fetchMode = $value;
+    } else {
+      $this->attributes[$index] = $value;
+    }
   }
   
-  public function setFetchMode($type,$argument=false) {
+  public function setFetchMode($type,$argument=false,$constructorArguments = array()) {
     $this->fetchMode = $type;
-    if ($type==PDO::FETCH_CLASS || $type==(PDO::FETCH_CLASS | PDO::FETCH_CLASSTYPE) || $type==PDO::FETCH_INTO) {
-      $this->fetchArgument =& $argument;
-    }
+    $this->fetchArgument =& $argument;
+    $this->constructorArguments =& $constructorArguments;
   }
 }
 

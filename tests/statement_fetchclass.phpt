@@ -7,9 +7,14 @@ require __DIR__.'/config.php';
 class TestElement {
     public $key;
     public $val;
+    public $len;
+    
+    public function __construct($len = 1) {
+        $this->len = $len;
+    }
     
     public function capitalizeKey() {
-        return ucwords($this->key);
+        return strtoupper(substr($this->key,0,$this->len)).substr($this->key,$this->len);
     }
 }
 $dbhs = array(
@@ -29,7 +34,7 @@ foreach ($dbhs as $dbh) {
         echo $testElement->capitalizeKey()."\n";
     }
     $stmt = $dbh->query($sql);
-    $stmt->setFetchMode(PDO::FETCH_CLASS,'TestElement');
+    $stmt->setFetchMode(PDO::FETCH_CLASS,'TestElement',array(2));
     while ($testElement = $stmt->fetch()) {
         echo $testElement->capitalizeKey()."\n";
     }
@@ -45,14 +50,14 @@ foreach ($dbhs as $dbh) {
 ===PDO===
 One
 Two
-One
-Two
+ONe
+TWo
 One
 Two
 ===VirtualDbServer===
 One
 Two
-One
-Two
+ONe
+TWo
 One
 Two
