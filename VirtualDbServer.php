@@ -23,7 +23,7 @@ class VirtualDbStatement implements Iterator {
       public bool nextRowset ( void )
    ok public int rowCount ( void )
    ok public bool setAttribute ( int $attribute , mixed $value )
-      public bool setFetchMode ( int $mode )
+   ok public bool setFetchMode ( int $mode )
   }*/
   
   public $queryString;
@@ -49,6 +49,7 @@ class VirtualDbStatement implements Iterator {
     $this->array = array();
     $this->attributes = $attributes;
     $this->serverAttrs = $serverAttrs;
+    $this->fetchMode = false;
   }
   
   public function execute ($input_parameters = array()) {
@@ -56,6 +57,10 @@ class VirtualDbStatement implements Iterator {
 //     echo(var_export($this->queryString,true));
 //     echo(var_export($this->params,true));
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
+    if (isset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE])) {
+      unset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE]);
+      $this->fetchMode = $this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE];
+    }
     $headers = array();
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
@@ -79,24 +84,40 @@ class VirtualDbStatement implements Iterator {
     $this->position = 0;
   }
 
-  public function fetch($type = PDO::FETCH_ASSOC)
+  public function fetch($type = false)
   {
+    if ($type===false) $type = $this->fetchMode;
+    if ($type===false) $type = PDO::FETCH_BOTH;
     $data = json_decode($this->current(),$type != PDO::FETCH_OBJ);
     if ($data===null) return false;
     $this->next();
-    $hash = array();
-    if ($type == PDO::FETCH_NUM) $data = $data;
-    else foreach ($this->meta as $i=>$meta) $hash[$meta->name]=$data[$i];
-    if ($type == PDO::FETCH_BOTH) $data = array_merge($data,$hash);
-    if ($type == PDO::FETCH_ASSOC) $data = $hash;
-    if ($type == PDO::FETCH_LAZY) $data = array_merge($data,$hash);
-    if ($type == PDO::FETCH_OBJ) $data = (object)$hash;
+    $result = array();
+    if ($type == PDO::FETCH_NUM) $result = $data;
+    if ($type == PDO::FETCH_BOTH || $type == PDO::FETCH_LAZY) {
+      foreach ($this->meta as $i=>$meta) {
+        $result[$meta->name]=$data[$i];
+        $result[$i]=$data[$i];
+      }
+    }
+    if ($type == PDO::FETCH_ASSOC) {
+      foreach ($this->meta as $i=>$meta) {
+        $result[$meta->name]=$data[$i];
+      }
+    }
+    if ($type == PDO::FETCH_OBJ) {
+      foreach ($this->meta as $i=>$meta) {
+        $result[$meta->name]=$data[$i];
+      }
+      $result = (object)$result;
+    }
     //if (count($data)>5) die(var_export(array(PDO::FETCH_OBJ,$type,$data),true));
-    return $data;
+    return $result;
   }
   
-  public function fetchAll($type = PDO::FETCH_NUM)
+  public function fetchAll($type = false)
   {
+    if ($type===false) $type = $this->fetchMode;
+    if ($type===false) $type = PDO::FETCH_BOTH;
     $data = array();
     while (false !== ($row = $this->fetch($type))) {
       $data[]=$row;
@@ -144,10 +165,6 @@ class VirtualDbStatement implements Iterator {
     return (array)$this->meta[$index];
   }
   
-  public function setFetchMode($mode) {
-    return true;
-  }
-
   public function getAttribute($index) {
     return $this->attributes[$index];
   }
@@ -156,6 +173,9 @@ class VirtualDbStatement implements Iterator {
     $this->attributes[$index] = $value;
   }
   
+  public function setFetchMode($type) {
+    $this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE] = $type;
+  }
 }
 
 class VirtualDbServer
