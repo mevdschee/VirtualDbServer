@@ -52,8 +52,8 @@ class VirtualDbStatement implements Iterator {
     $this->fetchMode = false;
   }
   
-  public function execute ($input_parameters = array()) {
-    $this->params = array_merge($this->params,$input_parameters);
+  public function execute ($input_parameters = false) {
+    if ($input_parameters!==false) $this->params = $input_parameters;
 //     echo(var_export($this->queryString,true));
 //     echo(var_export($this->params,true));
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
@@ -66,6 +66,7 @@ class VirtualDbStatement implements Iterator {
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
     curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
     $result = curl_exec($this->ch);
+    $this->position = 0;
     $this->array = explode("\n",$result);
     $this->rowCount = json_decode(array_shift($this->array));
     $this->db->setLastInsertId(json_decode(array_shift($this->array)));
