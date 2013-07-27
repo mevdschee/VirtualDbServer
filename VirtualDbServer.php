@@ -7,7 +7,7 @@ class VirtualDbStatement implements Iterator {
       
       public bool bindColumn ( mixed $column , mixed &$param [, int $type [, int $maxlen [, mixed $driverdata ]]] )
    ok public bool bindParam ( mixed $parameter , mixed &$variable [, int $data_type = PDO::PARAM_STR [, int $length [, mixed $driver_options ]]] )
-      public bool bindValue ( mixed $parameter , mixed $value [, int $data_type = PDO::PARAM_STR ] )
+   ok public bool bindValue ( mixed $parameter , mixed $value [, int $data_type = PDO::PARAM_STR ] )
    ok public bool closeCursor ( void )
    ok public int columnCount ( void )
       public void debugDumpParams ( void )
@@ -53,6 +53,8 @@ class VirtualDbStatement implements Iterator {
   
   public function execute ($input_parameters = array()) {
     $this->params = array_merge($this->params,$input_parameters);
+//     echo(var_export($this->queryString,true));
+//     echo(var_export($this->params,true));
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
     $headers = array();
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
@@ -99,11 +101,16 @@ class VirtualDbStatement implements Iterator {
     while (false !== ($row = $this->fetch($type))) {
       $data[]=$row;
     }
+    return $data;
   }
 
   public function bindParam($parameter, &$variable) {
-    $this->params[$parameter] = $variable;
+    $this->params[$parameter] =& $variable;
   }  
+  
+  public function bindValue($parameter, $variable) {
+    $this->params[$parameter] = $variable;
+  }
   
   public function current() {
     return isset($this->array[$this->position])?$this->array[$this->position]:false;
