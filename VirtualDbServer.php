@@ -1,4 +1,13 @@
 <?php
+class VirtualDbRow {
+  
+  public $queryString;
+  
+  public function __construct($queryString) {
+    $this->queryString = $queryString;
+  }
+}
+
 class VirtualDbStatement implements Iterator {
   
   /*PDOStatement implements Traversable {
@@ -107,17 +116,35 @@ class VirtualDbStatement implements Iterator {
     if ($data===null) return false;
     $this->next();
     $result = array();
-    if ($type == PDO::FETCH_NUM) $result = $data;
-    if ($type == PDO::FETCH_BOTH || $type == PDO::FETCH_LAZY) {
+    if ($type == PDO::FETCH_ASSOC) {
+      foreach ($this->meta as $i=>$meta) {
+        $result[$meta->name]=$data[$i];
+      }
+    }
+    if ($type == PDO::FETCH_BOTH){
       foreach ($this->meta as $i=>$meta) {
         $result[$meta->name]=$data[$i];
         $result[$i]=$data[$i];
       }
     }
-    if ($type == PDO::FETCH_ASSOC) {
+    if ($type == PDO::FETCH_BOUND) {
+      //implement
+    }
+    if ($type == PDO::FETCH_CLASS) {
+      //implement
+    }
+    if ($type == PDO::FETCH_INTO) {
+      //implement
+    }
+    if ($type == PDO::FETCH_LAZY) {
+      $result = new VirtualDbRow($this->queryString);
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta->name]=$data[$i];
+        $property = $meta->name;
+        $result->$property=$data[$i];
       }
+    }
+    if ($type == PDO::FETCH_NUM) {
+      $result = $data;
     }
     if ($type == PDO::FETCH_OBJ) {
       foreach ($this->meta as $i=>$meta) {
@@ -292,6 +319,12 @@ class VirtualDbServer
     $this->lastStatement = $this->prepare($statement);
     $this->lastStatement->execute();
     return $this->lastStatement->rowCount();
+  }
+  
+  public function query($statement) {
+    $this->lastStatement = $this->prepare($statement);
+    $this->lastStatement->execute();
+    return $this->lastStatement;
   }
   
   public function getAttribute($index) {
