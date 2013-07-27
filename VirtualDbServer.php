@@ -48,6 +48,8 @@ class VirtualDbStatement implements Iterator {
   private $params;
   private $attributes;
   private $serverAttrs;
+  private $fetchMode;
+  private $fetchArgument;
   
   public function __construct($queryString,$db,$ch,$attributes=array(),$serverAttrs=array()) {
     $this->queryString = $queryString;
@@ -63,6 +65,7 @@ class VirtualDbStatement implements Iterator {
     $this->attributes = $attributes;
     $this->serverAttrs = $serverAttrs;
     $this->fetchMode = false;
+    $this->fetchArgument = false;
   }
   
   public function execute ($input_parameters = false) {
@@ -131,10 +134,27 @@ class VirtualDbStatement implements Iterator {
       //implement
     }
     if ($type == PDO::FETCH_CLASS) {
-      //implement
+      $result = new $this->fetchArgument;
+      foreach ($this->meta as $i=>$meta) {
+        $property = $meta->name;
+        $result->$property=$data[$i];
+      }
+    }
+    if ($type == (PDO::FETCH_CLASS | PDO::FETCH_CLASSTYPE)) {
+      $result = new $data[0];
+      foreach ($this->meta as $i=>$meta) {
+        if ($i>0) {
+          $property = $meta->name;
+          $result->$property=$data[$i];
+        }
+      }
     }
     if ($type == PDO::FETCH_INTO) {
-      //implement
+      $result =& $this->fetchArgument;
+      foreach ($this->meta as $i=>$meta) {
+        $property = $meta->name;
+        $result->$property=$data[$i];
+      }
     }
     if ($type == PDO::FETCH_LAZY) {
       $result = new VirtualDbRow($this->queryString);
@@ -156,12 +176,19 @@ class VirtualDbStatement implements Iterator {
     return $result;
   }
   
-  public function fetchAll($type = false)
+  public function fetchObject($argument = false) {
+    if ($argument===false) $this->setFetchMode(PDO::FETCH_OBJ);
+    else $this->setFetchMode(PDO::FETCH_CLASS,$argument);
+    return $this->fetch();
+  }
+  
+  public function fetchAll($type = false, $argument = false)
   {
     if ($type===false) $type = $this->fetchMode;
     if ($type===false) $type = PDO::FETCH_BOTH;
+    $this->setFetchMode($type,$argument);
     $data = array();
-    while (false !== ($row = $this->fetch($type))) {
+    while (false !== ($row = $this->fetch())) {
       $data[]=$row;
     }
     return $data;
@@ -223,8 +250,11 @@ class VirtualDbStatement implements Iterator {
     $this->attributes[$index] = $value;
   }
   
-  public function setFetchMode($type) {
-    $this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE] = $type;
+  public function setFetchMode($type,$argument=false) {
+    $this->fetchMode = $type;
+    if ($type==PDO::FETCH_CLASS || $type==(PDO::FETCH_CLASS | PDO::FETCH_CLASSTYPE) || $type==PDO::FETCH_INTO) {
+      $this->fetchArgument =& $argument;
+    }
   }
 }
 
