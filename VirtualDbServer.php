@@ -77,8 +77,6 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   
   public function execute ($input_parameters = false) {
     if ($input_parameters!==false) $this->params = $input_parameters;
-//     echo(var_export($this->queryString,true));
-//     echo(var_export($this->params,true));
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
     $headers = array();
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
@@ -95,13 +93,6 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       $this->rowCount = json_decode(array_shift($this->array));
       $this->db->setLastInsertId(json_decode(array_shift($this->array)));
       $this->meta = json_decode(array_shift($this->array),true);
-  //     var_dump($this->queryString);
-  //     if (preg_match('/SELECT.*Customer/',$this->queryString))
-  //     if ($this->rowCount==22)
-  //      {
-  //        die(var_export($result,true));
-  //        die(var_export($this->queryString,true).var_export($result,true));
-  //      }
       $result = true;
     } elseif ($status==400) {
       $this->errorCode = json_decode(array_shift($this->array));
@@ -186,7 +177,6 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       }
       $result = (object)$result;
     }
-    //if (count($data)>5) die(var_export(array(PDO::FETCH_OBJ,$type,$data),true));
     return $result;
   }
   
@@ -231,7 +221,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       $data = json_decode($data,true);
       for ($i=0;$i<$this->columnCount();$i++) {
         if ($this->meta[$i]['native_type']=='BLOB') {
-          $data[$i] = base64_decode($data[$i]);
+          if ($data[$i]!==null) $data[$i] = base64_decode($data[$i]);
         }
       }
     }
@@ -275,7 +265,9 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function getAttribute($index) {
-    if ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
+    if ($index == PDO::MYSQL_ATTR_INIT_COMMAND) {
+      $result = 'SET NAMES utf8';
+    } elseif ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
       $result = $this->fetchMode;
     } else {
       $result = $this->attributes[$index];
@@ -284,7 +276,9 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function setAttribute($index,$value) {
-    if ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
+    if ($index == PDO::MYSQL_ATTR_INIT_COMMAND) {
+      return;
+    } elseif ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
       $this->fetchMode = $value;
     } else {
       $this->attributes[$index] = $value;

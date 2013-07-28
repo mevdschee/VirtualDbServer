@@ -16,7 +16,8 @@ foreach ($dbhs as $dbh) {
     $val = '';
     for($i=0;$i<256;$i++) $val .= chr($i);
     $stmt->execute(array('data',$val));
-    $stmt->execute(array('none',null));
+    $stmt = $dbh->prepare("INSERT INTO `test` (`key`,val) VALUES (?,NULL)");
+    $stmt->execute(array('none'));
     $stmt = $dbh->query("SELECT `val` FROM `test` WHERE `key`='data'");
     $data = $stmt->fetchColumn();
     echo bin2hex($data)."\n";
