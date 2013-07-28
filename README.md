@@ -7,7 +7,6 @@ Known Issues
 ----
 
  - UTF8 must be used; other charsets are not supported
- - BINARY and VAR_BINARY are not supported
 
 To do
 ----
@@ -18,6 +17,7 @@ To do
  - Support server attributes: http://php.net/manual/en/pdo.setattribute.php
  - Support MySQL attributes: http://www.php.net/manual/en/ref.pdo-mysql.php
  - Include PDO constants
+ - Add binary statement attribute for disabling "utf8_encode"
 
 Overview:
 

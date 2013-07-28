@@ -36,6 +36,9 @@ try {
         if ($meta[$i]['native_type']=='BLOB') {
           if ($data[$i]!==null) $data[$i] = base64_encode($data[$i]);
         }
+        if (in_array($meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
+          if ($data[$i]!==null) $data[$i] = utf8_encode($data[$i]);
+        }
       }
       echo json_encode($data)."\n";
       if ($error = json_last_error()) {
