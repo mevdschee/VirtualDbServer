@@ -11,7 +11,8 @@ $dbhs = array(
 foreach ($dbhs as $dbh) { 
     echo "===".get_class($dbh)."===\n";
     $stmt = $dbh->exec("DROP TABLE IF EXISTS `test`;");
-    $stmt = $dbh->exec("CREATE TABLE `test` (`key` varchar(255) NOT NULL,`val` varchar(255) NOT NULL) COLLATE 'utf8_general_ci';");
+    $stmt = $dbh->exec("CREATE TABLE `test` (`key` varchar(255) NOT NULL,`val` INT(11) NULL) COLLATE 'utf8_general_ci';");
+    $stmt = $dbh->exec("INSERT INTO `test` (`key`, val) VALUES ('nil', NULL)");
     $stmt = $dbh->exec("INSERT INTO `test` (`key`, val) VALUES ('one', 1)");
     $stmt = $dbh->exec("INSERT INTO `test` (`key`, val) VALUES ('two', 2)");
     $sql = "SELECT * FROM test";
@@ -33,12 +34,12 @@ foreach ($dbhs as $dbh) {
 
 --EXPECT--
 ===PDO===
-2: [{"key":"one","val":"1"},{"key":"two","val":"2"}]
-4: [{"key":"one","0":"one","val":"1","1":"1"},{"key":"two","0":"two","val":"2","1":"2"}]
-3: [["one","1"],["two","2"]]
-5: [{"key":"one","val":"1"},{"key":"two","val":"2"}]
+2: [{"key":"nil","val":null},{"key":"one","val":"1"},{"key":"two","val":"2"}]
+4: [{"key":"nil","0":"nil","val":null,"1":null},{"key":"one","0":"one","val":"1","1":"1"},{"key":"two","0":"two","val":"2","1":"2"}]
+3: [["nil",null],["one","1"],["two","2"]]
+5: [{"key":"nil","val":null},{"key":"one","val":"1"},{"key":"two","val":"2"}]
 ===VirtualDbServer===
-2: [{"key":"one","val":"1"},{"key":"two","val":"2"}]
-4: [{"key":"one","0":"one","val":"1","1":"1"},{"key":"two","0":"two","val":"2","1":"2"}]
-3: [["one","1"],["two","2"]]
-5: [{"key":"one","val":"1"},{"key":"two","val":"2"}]
+2: [{"key":"nil","val":null},{"key":"one","val":"1"},{"key":"two","val":"2"}]
+4: [{"key":"nil","0":"nil","val":null,"1":null},{"key":"one","0":"one","val":"1","1":"1"},{"key":"two","0":"two","val":"2","1":"2"}]
+3: [["nil",null],["one","1"],["two","2"]]
+5: [{"key":"nil","val":null},{"key":"one","val":"1"},{"key":"two","val":"2"}]
