@@ -14,7 +14,7 @@ class VirtualDbStatement implements Iterator {
 
    ok readonly string $queryString;
       
-      public bool bindColumn ( mixed $column , mixed &$param [, int $type [, int $maxlen [, mixed $driverdata ]]] )
+   ok public bool bindColumn ( mixed $column , mixed &$param [, int $type [, int $maxlen [, mixed $driverdata ]]] )
    ok public bool bindParam ( mixed $parameter , mixed &$variable [, int $data_type = PDO::PARAM_STR [, int $length [, mixed $driver_options ]]] )
    ok public bool bindValue ( mixed $parameter , mixed $value [, int $data_type = PDO::PARAM_STR ] )
    ok public bool closeCursor ( void )
@@ -25,7 +25,7 @@ class VirtualDbStatement implements Iterator {
    ok public bool execute ([ array $input_parameters ] )
    ok public mixed fetch ([ int $fetch_style [, int $cursor_orientation = PDO::FETCH_ORI_NEXT [, int $cursor_offset = 0 ]]] )
    ok public array fetchAll ([ int $fetch_style [, mixed $fetch_argument [, array $ctor_args = array() ]]] )
-      public string fetchColumn ([ int $column_number = 0 ] )
+   ok public string fetchColumn ([ int $column_number = 0 ] )
    ok public mixed fetchObject ([ string $class_name = "stdClass" [, array $ctor_args ]] )
    ok public mixed getAttribute ( int $attribute )
    ok public array getColumnMeta ( int $column )
@@ -36,6 +36,7 @@ class VirtualDbStatement implements Iterator {
   }*/
   
   public $queryString;
+
   private $position;
   private $rowCount;
   private $errorCode;
@@ -44,6 +45,7 @@ class VirtualDbStatement implements Iterator {
   private $array;
   private $db;
   private $ch;
+  private $columns;
   private $params;
   private $attributes;
   private $serverAttrs;
@@ -61,8 +63,12 @@ class VirtualDbStatement implements Iterator {
     $this->array = array();
     $this->db = $db;
     $this->ch = $ch;
+    $this->columns = array();
     $this->params = array();
-    $this->attributes = $attributes;
+    $this->attributes = array();
+    foreach($attributes as $index => $value) {
+      $this->setAttribute($index,$value);
+    }
     $this->serverAttrs = $serverAttrs;
     $this->fetchMode = false;
     $this->fetchArgument = false;
@@ -74,10 +80,6 @@ class VirtualDbStatement implements Iterator {
 //     echo(var_export($this->queryString,true));
 //     echo(var_export($this->params,true));
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
-    if (isset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE])) {
-      $this->fetchMode = $this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE];
-      unset($this->attributes[PDO::ATTR_DEFAULT_FETCH_MODE]);
-    }
     $headers = array();
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
@@ -132,7 +134,15 @@ class VirtualDbStatement implements Iterator {
       }
     }
     if ($type == PDO::FETCH_BOUND) {
-      //implement
+      foreach ($this->meta as $i=>$meta) {
+        $result[$meta->name]=$data[$i];
+        $result[$i+1]=$data[$i];
+      }
+      $columns = array_keys($this->columns);
+      foreach ($columns as $column) {
+        $this->columns[$column]=$result[$column];
+      }
+      $result = true;
     }
     if ($type == PDO::FETCH_CLASS) {
       $reflect = new ReflectionClass($this->fetchArgument);
@@ -179,6 +189,12 @@ class VirtualDbStatement implements Iterator {
     return $result;
   }
   
+  public function fetchColumn($column = 0) {
+    $data = json_decode($this->current(),true);
+    $this->next();
+    return $data[$column];
+  }
+  
   public function fetchObject($argument = "stdClass", $constructorArguments = array()) {
     $this->setFetchMode(PDO::FETCH_CLASS,$argument,$constructorArguments);
     return $this->fetch();
@@ -196,9 +212,13 @@ class VirtualDbStatement implements Iterator {
     return $data;
   }
 
+  public function bindColumn($column, &$param) {
+    $this->columns[$column] =& $param;
+  }
+  
   public function bindParam($parameter, &$variable) {
     $this->params[$parameter] =& $variable;
-  }  
+  }
   
   public function bindValue($parameter, $variable) {
     $this->params[$parameter] = $variable;
@@ -245,7 +265,12 @@ class VirtualDbStatement implements Iterator {
   }
   
   public function getAttribute($index) {
-    return $this->attributes[$index];
+    if ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
+      $result = $this->fetchMode;
+    } else {
+      $result = $this->attributes[$index];
+    }
+    return $result;
   }
   
   public function setAttribute($index,$value) {
@@ -266,7 +291,7 @@ class VirtualDbStatement implements Iterator {
 class VirtualDbServer
 {
   /* PDO {
-      public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
+   ok public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
       public bool beginTransaction ( void )
       public bool commit ( void )
    ok public mixed errorCode ( void )
@@ -276,8 +301,8 @@ class VirtualDbServer
    ok public static array getAvailableDrivers ( void )
       public bool inTransaction ( void )
    ok public string lastInsertId ([ string $name = NULL ] )
-      public PDOStatement prepare ( string $statement [, array $driver_options = array() ] )
-      public PDOStatement query ( string $statement )
+   ok public PDOStatement prepare ( string $statement [, array $driver_options = array() ] )
+   ok public PDOStatement query ( string $statement )
    ok public string quote ( string $string [, int $parameter_type = PDO::PARAM_STR ] )
       public bool rollBack ( void )
    ok public bool setAttribute ( int $attribute , mixed $value )
@@ -345,6 +370,7 @@ class VirtualDbServer
   }
   
   public function prepare($statement,$attributes = array()) {
+    $this->attributes = array_merge($this->attributes,$attributes);
     curl_setopt ($this->ch, CURLOPT_URL, $this->url.urlencode($statement));
     $this->lastStatement = new VirtualDbStatement($statement, $this, $this->ch, $attributes, $this->attributes);
     return $this->lastStatement;
