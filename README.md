@@ -6,10 +6,17 @@ Known Issues
 
  - UTF8 must be used; other charsets are not supported
  - BINARY and VAR_BINARY are not supported
- - Multiple rowsets fetaure is not supported
 
 To do
 ----
+
+ - Transaction support
+ - Multiple rowsets: http://www.php.net/manual/en/pdostatement.nextrowset.php
+ - debugDumpParams: http://www.php.net/manual/en/pdostatement.debugdumpparams.php
+ - Support server attributes: http://php.net/manual/en/pdo.setattribute.php
+ - Support MySQL attributes: http://www.php.net/manual/en/ref.pdo-mysql.php
+
+Overview:
 
         PDO {
         done public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
