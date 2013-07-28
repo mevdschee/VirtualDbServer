@@ -17,7 +17,8 @@ To do
  - Support server attributes: http://php.net/manual/en/pdo.setattribute.php
  - Support MySQL attributes: http://www.php.net/manual/en/ref.pdo-mysql.php
  - Include PDO constants
- - Add binary statement attribute for disabling "utf8_encode"
+ - Add binary statement attribute for enabling BLOB and BINARY
+ - Add error handling with hint to enable binary flag when JSON_ERROR occurs
 
 Overview:
 

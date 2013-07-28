@@ -32,14 +32,16 @@ try {
   echo json_encode($meta)."\n";
   if ($columnCount) {
     while ($data = $stmt->fetch(PDO::FETCH_NUM)) {
-      for ($i=0;$i<$stmt->columnCount();$i++) {
-        if ($meta[$i]['native_type']=='BLOB') {
-          if ($data[$i]!==null) $data[$i] = base64_encode($data[$i]);
-        }
-        if (in_array($meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
-          if ($data[$i]!==null) $data[$i] = utf8_encode($data[$i]);
-        }
-      }
+//       if (some binary enable flag is set) {
+//         for ($i=0;$i<$stmt->columnCount();$i++) {
+//           if ($meta[$i]['native_type']=='BLOB') {
+//             if ($data[$i]!==null) $data[$i] = base64_encode($data[$i]);
+//           }
+//           if (in_array($meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
+//             if ($data[$i]!==null) $data[$i] = utf8_encode($data[$i]);
+//           }
+//         }
+//       }
       echo json_encode($data)."\n";
       if ($error = json_last_error()) {
         fwrite($f, "=== JSON error: $error\n");

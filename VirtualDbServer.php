@@ -219,14 +219,16 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     $data = isset($this->array[$this->position])?$this->array[$this->position]:false;
     if ($data!==false) {
       $data = json_decode($data,true);
-      for ($i=0;$i<$this->columnCount();$i++) {
-        if ($this->meta[$i]['native_type']=='BLOB') {
-          if ($data[$i]!==null) $data[$i] = base64_decode($data[$i]);
-        }
-        if (in_array($this->meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
-          if ($data[$i]!==null) $data[$i] = utf8_decode($data[$i]);
-        }
-      }
+//       if (some binary enable flag is set) {
+//         for ($i=0;$i<$this->columnCount();$i++) {
+//           if ($this->meta[$i]['native_type']=='BLOB') {
+//             if ($data[$i]!==null) $data[$i] = base64_decode($data[$i]);
+//           }
+//           if (in_array($this->meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
+//             if ($data[$i]!==null) $data[$i] = utf8_decode($data[$i]);
+//           }
+//         }
+//       }
     }
     return $data; 
   }
