@@ -19,15 +19,13 @@ TODO
         done public string lastInsertId ([ string $name = NULL ] )
         done public PDOStatement prepare ( string $statement [, array $driver_options = array() ] )
         done public PDOStatement query ( string $statement )
-        done public string quote ( string $string [, int $parameter_type = PDO::PARAM_STR ] )
+        args public string quote ( string $string [, int $parameter_type = PDO::PARAM_STR ] )
              public bool rollBack ( void )
         done public bool setAttribute ( int $attribute , mixed $value )
         }
         
         PDOStatement implements Traversable {
-        
         done readonly string $queryString;
-          
         args public bool bindColumn ( mixed $column , mixed &$param [, int $type [, int $maxlen [, mixed $driverdata ]]] )
         args public bool bindParam ( mixed $parameter , mixed &$variable [, int $data_type = PDO::PARAM_STR [, int $length [, mixed $driver_options ]]] )
         args public bool bindValue ( mixed $parameter , mixed $value [, int $data_type = PDO::PARAM_STR ] )
