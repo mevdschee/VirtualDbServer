@@ -1,6 +1,8 @@
 VirtualDbServer
 ===============
 
+VirtualDbServer is a (native) PHP implementation of the PDO MySQL driver over HTTP(S) using CURL and JSON.
+
 Known Issues
 ----
 
@@ -15,6 +17,7 @@ To do
  - debugDumpParams: http://www.php.net/manual/en/pdostatement.debugdumpparams.php
  - Support server attributes: http://php.net/manual/en/pdo.setattribute.php
  - Support MySQL attributes: http://www.php.net/manual/en/ref.pdo-mysql.php
+ - Include PDO constants
 
 Overview:
 
