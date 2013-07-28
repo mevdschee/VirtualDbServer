@@ -1,10 +1,15 @@
 VirtualDbServer
 ===============
 
+Known Issues
+----
 
+ - UTF8 must be used; other charsets are not supported
+ - BINARY and VAR_BINARY are not supported
+ - Multiple rowsets fetaure is not supported
 
-TODO
-===============
+To do
+----
 
         PDO {
         done public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )

@@ -265,9 +265,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function getAttribute($index) {
-    if ($index == PDO::MYSQL_ATTR_INIT_COMMAND) {
-      $result = 'SET NAMES utf8';
-    } elseif ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
+    if ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
       $result = $this->fetchMode;
     } else {
       $result = $this->attributes[$index];
@@ -276,9 +274,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function setAttribute($index,$value) {
-    if ($index == PDO::MYSQL_ATTR_INIT_COMMAND) {
-      return;
-    } elseif ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
+    if ($index == PDO::ATTR_DEFAULT_FETCH_MODE) {
       $this->fetchMode = $value;
     } else {
       $this->attributes[$index] = $value;
@@ -336,7 +332,10 @@ class VirtualDbServer /* extends PDO */
     $this->dbname = $parameters['dbname'];
     $this->lastStatement = false;
     $this->lastInsertId = false;
-    $this->attributes = $attributes;
+    $this->attributes = array();
+    foreach($attributes as $index => $value) {
+      $this->setAttribute($index,$value);
+    }
   }
   
   public function setLastInsertId($value) {
@@ -363,19 +362,22 @@ class VirtualDbServer /* extends PDO */
     // is this safe when server and client character-set are utf8?
     $startQuote = '\'';
     $endQuote = '\'';
-    if(is_array($string)) {
+    if (is_null($string)) {
+      return null;
+    }
+    if (is_array($string)) {
       return array_map(__METHOD__, $string);
     }
     if ($type == PDO::PARAM_BOOL) {
-      return $string?1:0;
+      $string = $string?1:0;
     }
-    if ($type == PDO::PARAM_INT && is_int($string)) {
-      return $string+0;
+    if ($type == PDO::PARAM_INT) {
+      $string += 0;
     }
-    if ($type == PDO::PARAM_STR && is_string($string)) {
+    if ($type == PDO::PARAM_STR) {
       $search = array('\\', "\0", "\n", "\r", "'", '"', "\x1a");
       $replace = array('\\\\', '\\0', '\\n', '\\r', "\\'", '\\"', '\\Z');
-      return $startQuote.str_replace($search,$replace,$string).$endQuote;
+      $string = $startQuote.str_replace($search,$replace,$string).$endQuote;
     }
     return $string;
   }
@@ -400,11 +402,24 @@ class VirtualDbServer /* extends PDO */
   }
   
   public function getAttribute($index) {
-    return $this->attributes[$index];
+    if ($index == PDO::MYSQL_ATTR_INIT_COMMAND) {
+      $result = 'SET NAMES utf8';
+    } elseif ($index == PDO::ATTR_ERRMODE) {
+      $result = PDO::ERRMODE_EXCEPTION;
+    } else {
+      $result = $this->attributes[$index];
+    }
+    return $result;
   }
   
   public function setAttribute($index,$value) {
-    $this->attributes[$index] = $value;
+    if ($index == PDO::MYSQL_ATTR_INIT_COMMAND) {
+      // ignore or throw
+    } elseif ($index == PDO::ATTR_ERRMODE) {
+      // ignore or throw
+    } else {
+      $this->attributes[$index] = $value;
+    }
   }
   
 }
