@@ -1,5 +1,5 @@
 <?php
-class VirtualDbRow {
+class VirtualDbRow /* extends PDORow */ {
   
   public $queryString;
   
@@ -8,7 +8,7 @@ class VirtualDbRow {
   }
 }
 
-class VirtualDbStatement implements Iterator {
+class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   
   /*PDOStatement implements Traversable {
 
@@ -87,13 +87,14 @@ class VirtualDbStatement implements Iterator {
     $result = curl_exec($this->ch);
     $this->position = 0;
     $this->array = explode("\n",$result);
+    array_pop($this->array); //remove trailing newline
     $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
     if ($status==200) {
       $this->errorCode = '0000';
       $this->errorInfo = array();
       $this->rowCount = json_decode(array_shift($this->array));
       $this->db->setLastInsertId(json_decode(array_shift($this->array)));
-      $this->meta = json_decode(array_shift($this->array));
+      $this->meta = json_decode(array_shift($this->array),true);
   //     var_dump($this->queryString);
   //     if (preg_match('/SELECT.*Customer/',$this->queryString))
   //     if ($this->rowCount==22)
@@ -118,24 +119,24 @@ class VirtualDbStatement implements Iterator {
   {
     if ($type===false) $type = $this->fetchMode;
     if ($type===false) $type = PDO::FETCH_BOTH;
-    $data = json_decode($this->current(),true);
-    if ($data===null) return false;
+    $data = $this->current();
+    if ($data===false) return false;
     $this->next();
     $result = array();
     if ($type == PDO::FETCH_ASSOC) {
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta->name]=$data[$i];
+        $result[$meta['name']]=$data[$i];
       }
     }
     if ($type == PDO::FETCH_BOTH){
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta->name]=$data[$i];
+        $result[$meta['name']]=$data[$i];
         $result[$i]=$data[$i];
       }
     }
     if ($type == PDO::FETCH_BOUND) {
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta->name]=$data[$i];
+        $result[$meta['name']]=$data[$i];
         $result[$i+1]=$data[$i];
       }
       $columns = array_keys($this->columns);
@@ -148,7 +149,7 @@ class VirtualDbStatement implements Iterator {
       $reflect = new ReflectionClass($this->fetchArgument);
       $result = $reflect->newInstanceArgs($this->constructorArguments);
       foreach ($this->meta as $i=>$meta) {
-        $property = $meta->name;
+        $property = $meta['name'];
         $result->$property=$data[$i];
       }
     }
@@ -157,7 +158,7 @@ class VirtualDbStatement implements Iterator {
       $result = $reflect->newInstanceArgs($this->constructorArguments);
       foreach ($this->meta as $i=>$meta) {
         if ($i>0) {
-          $property = $meta->name;
+          $property = $meta['name'];
           $result->$property=$data[$i];
         }
       }
@@ -165,14 +166,14 @@ class VirtualDbStatement implements Iterator {
     if ($type == PDO::FETCH_INTO) {
       $result =& $this->fetchArgument;
       foreach ($this->meta as $i=>$meta) {
-        $property = $meta->name;
+        $property = $meta['name'];
         $result->$property=$data[$i];
       }
     }
     if ($type == PDO::FETCH_LAZY) {
       $result = new VirtualDbRow($this->queryString);
       foreach ($this->meta as $i=>$meta) {
-        $property = $meta->name;
+        $property = $meta['name'];
         $result->$property=$data[$i];
       }
     }
@@ -181,7 +182,7 @@ class VirtualDbStatement implements Iterator {
     }
     if ($type == PDO::FETCH_OBJ) {
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta->name]=$data[$i];
+        $result[$meta['name']]=$data[$i];
       }
       $result = (object)$result;
     }
@@ -190,7 +191,7 @@ class VirtualDbStatement implements Iterator {
   }
   
   public function fetchColumn($column = 0) {
-    $data = json_decode($this->current(),true);
+    $data = $this->current();
     $this->next();
     return $data[$column];
   }
@@ -225,7 +226,16 @@ class VirtualDbStatement implements Iterator {
   }
   
   public function current() {
-    return isset($this->array[$this->position])?$this->array[$this->position]:false;
+    $data = isset($this->array[$this->position])?$this->array[$this->position]:false;
+    if ($data!==false) {
+      $data = json_decode($data,true);
+      for ($i=0;$i<$this->columnCount();$i++) {
+        if ($this->meta[$i]['native_type']=='BLOB') {
+          $data[$i] = base64_decode($data[$i]);
+        }
+      }
+    }
+    return $data; 
   }
 
   public function key() {
@@ -261,7 +271,7 @@ class VirtualDbStatement implements Iterator {
   }
   
   public function getColumnMeta($index) {
-    return (array)$this->meta[$index];
+    return $this->meta[$index];
   }
   
   public function getAttribute($index) {
@@ -288,7 +298,7 @@ class VirtualDbStatement implements Iterator {
   }
 }
 
-class VirtualDbServer
+class VirtualDbServer /* extends PDO */
 {
   /* PDO {
    done public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
@@ -355,18 +365,25 @@ class VirtualDbServer
     return array('mysql');
   }
   
-  public function quote($str) {
+  public function quote($string,$type=PDO::PARAM_STR) {
     // is this safe when server and client character-set are utf8?
     $startQuote = '\'';
     $endQuote = '\'';
-    if(is_array($str))
-      return array_map(__METHOD__, $str);
-    if(is_string($str)) {
+    if(is_array($string)) {
+      return array_map(__METHOD__, $string);
+    }
+    if ($type == PDO::PARAM_BOOL) {
+      return $string?1:0;
+    }
+    if ($type == PDO::PARAM_INT && is_int($string)) {
+      return $string+0;
+    }
+    if ($type == PDO::PARAM_STR && is_string($string)) {
       $search = array('\\', "\0", "\n", "\r", "'", '"', "\x1a");
       $replace = array('\\\\', '\\0', '\\n', '\\r', "\\'", '\\"', '\\Z');
-      return $startQuote.str_replace($search,$replace,$str).$endQuote;
+      return $startQuote.str_replace($search,$replace,$string).$endQuote;
     }
-    return $str;
+    return $string;
   }
   
   public function prepare($statement,$attributes = array()) {
