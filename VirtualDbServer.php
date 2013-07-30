@@ -75,6 +75,12 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     $this->constructorArguments = array();
   }
   
+  private function decodeStrings(&$str) {
+    if (is_array($str)) return array_map(__METHOD__, $str);
+    if (is_string($str)) return utf8_decode($str);
+    return $str;
+  }
+  
   public function execute ($input_parameters = false) {
     if ($input_parameters!==false) $this->params = $input_parameters;
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
@@ -82,21 +88,21 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
     curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
-    $result = curl_exec($this->ch);
+    $this->array = json_decode(curl_exec($this->ch));
+    $jsonError = array_shift($this->array);
+    if ($jsonError) $this->array = $this->decodeStrings($this->array);
     $this->position = 0;
-    $this->array = explode("\n",$result);
-    array_pop($this->array); //remove trailing newline
     $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
     if ($status==200) {
       $this->errorCode = '0000';
       $this->errorInfo = array();
-      $this->rowCount = json_decode(array_shift($this->array));
-      $this->db->setLastInsertId(json_decode(array_shift($this->array)));
-      $this->meta = json_decode(array_shift($this->array),true);
+      $this->rowCount = array_shift($this->array);
+      $this->db->setLastInsertId(array_shift($this->array));
+      $this->meta = array_shift($this->array);
       $result = true;
     } elseif ($status==400) {
-      $this->errorCode = json_decode(array_shift($this->array));
-      $this->errorInfo = json_decode(array_shift($this->array));
+      $this->errorCode = array_shift($this->array);
+      $this->errorInfo = array_shift($this->array);
       $result = false;
     }
     return $result;
@@ -116,18 +122,18 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     $result = array();
     if ($type == PDO::FETCH_ASSOC) {
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta['name']]=$data[$i];
+        $result[$meta->name]=$data[$i];
       }
     }
     if ($type == PDO::FETCH_BOTH){
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta['name']]=$data[$i];
+        $result[$meta->name]=$data[$i];
         $result[$i]=$data[$i];
       }
     }
     if ($type == PDO::FETCH_BOUND) {
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta['name']]=$data[$i];
+        $result[$meta->name]=$data[$i];
         $result[$i+1]=$data[$i];
       }
       $columns = array_keys($this->columns);
@@ -140,7 +146,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       $reflect = new ReflectionClass($this->fetchArgument);
       $result = $reflect->newInstanceArgs($this->constructorArguments);
       foreach ($this->meta as $i=>$meta) {
-        $property = $meta['name'];
+        $property = $meta->name;
         $result->$property=$data[$i];
       }
     }
@@ -149,7 +155,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       $result = $reflect->newInstanceArgs($this->constructorArguments);
       foreach ($this->meta as $i=>$meta) {
         if ($i>0) {
-          $property = $meta['name'];
+          $property = $meta->name;
           $result->$property=$data[$i];
         }
       }
@@ -157,14 +163,14 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     if ($type == PDO::FETCH_INTO) {
       $result =& $this->fetchArgument;
       foreach ($this->meta as $i=>$meta) {
-        $property = $meta['name'];
+        $property = $meta->name;
         $result->$property=$data[$i];
       }
     }
     if ($type == PDO::FETCH_LAZY) {
       $result = new VirtualDbRow($this->queryString);
       foreach ($this->meta as $i=>$meta) {
-        $property = $meta['name'];
+        $property = $meta->name;
         $result->$property=$data[$i];
       }
     }
@@ -173,7 +179,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     }
     if ($type == PDO::FETCH_OBJ) {
       foreach ($this->meta as $i=>$meta) {
-        $result[$meta['name']]=$data[$i];
+        $result[$meta->name]=$data[$i];
       }
       $result = (object)$result;
     }
@@ -216,21 +222,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function current() {
-    $data = isset($this->array[$this->position])?$this->array[$this->position]:false;
-    if ($data!==false) {
-      $data = json_decode($data,true);
-//       if (some binary enable flag is set) {
-//         for ($i=0;$i<$this->columnCount();$i++) {
-//           if ($this->meta[$i]['native_type']=='BLOB') {
-//             if ($data[$i]!==null) $data[$i] = base64_decode($data[$i]);
-//           }
-//           if (in_array($this->meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
-//             if ($data[$i]!==null) $data[$i] = utf8_decode($data[$i]);
-//           }
-//         }
-//       }
-    }
-    return $data; 
+    return isset($this->array[$this->position])?$this->array[$this->position]:false;
   }
 
   public function key() {
@@ -266,7 +258,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function getColumnMeta($index) {
-    return $this->meta[$index];
+    return (array)$this->meta[$index];
   }
   
   public function getAttribute($index) {

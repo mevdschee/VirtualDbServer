@@ -1,7 +1,11 @@
 <?php
+function encodeStrings(&$str) {
+  if (is_array($str)) return array_map(__METHOD__, $str);
+  if (is_string($str)) return utf8_encode($str);
+  return $str;
+}
 try {
   $f = fopen('db.log', 'a'); //debug access log
-  ob_start();
   require __DIR__.'/config.php';
   $query = $_GET['query'];
   fwrite($f, "=== query:\n".$query."\n");
@@ -25,56 +29,37 @@ try {
   }
   $stmt->execute();
   $columnCount = $stmt->columnCount();
-  echo json_encode($stmt->rowCount())."\n";
-  echo json_encode($db->lastInsertId())."\n";
+  $object = array(0);
+  $object[] = $stmt->rowCount();
+  $object[] = $db->lastInsertId();
   $meta = array();
   for ($i=0;$i<$columnCount;$i++) $meta[$i] = $stmt->getColumnMeta($i);
-  echo json_encode($meta)."\n";
+  $object[] = $meta;
   if ($columnCount) {
-    while ($data = $stmt->fetch(PDO::FETCH_NUM)) {
-//       if (some binary enable flag is set) {
-//         for ($i=0;$i<$stmt->columnCount();$i++) {
-//           if ($meta[$i]['native_type']=='BLOB') {
-//             if ($data[$i]!==null) $data[$i] = base64_encode($data[$i]);
-//           }
-//           if (in_array($meta[$i]['native_type'],array('STRING','VAR_STRING'))) {
-//             if ($data[$i]!==null) $data[$i] = utf8_encode($data[$i]);
-//           }
-//         }
-//       }
-      echo json_encode($data)."\n";
-      if ($error = json_last_error()) {
-        fwrite($f, "=== JSON error: $error\n");
-        // throw? 
-        //     0 = JSON_ERROR_NONE
-        //     1 = JSON_ERROR_DEPTH
-        //     2 = JSON_ERROR_STATE_MISMATCH
-        //     3 = JSON_ERROR_CTRL_CHAR
-        //     4 = JSON_ERROR_SYNTAX
-        //     5 = JSON_ERROR_UTF8
-      }
-    }
+    while ($object[] = $stmt->fetch(PDO::FETCH_NUM));
   }
-  $output = ob_get_contents();
-  fwrite($f, "=== full output:\n".$output);
-  ob_end_clean();
+  $str = json_encode($object);
+  $object[0] = json_last_error();
+  if ($object[0]) $str = json_encode(encodeStrings($object));
+  fwrite($f, "=== full output:\n$str\n");
   fclose($f);
-  echo $output;
+  echo $str;
 } catch (Exception $e) {
-  ob_clean();
+  $object = array(0);
   if ($e instanceof PDOException) {
     header('HTTP/1.1 400 Bad Request',true,400);
-    echo json_encode($e->getCode())."\n";
-    echo json_encode($e->errorInfo)."\n";
+    $object[] = $e->getCode();
+    $object[] = $e->errorInfo;
   } else {    
     header('HTTP/1.1 500 Internal Server Error',true,500);
-    echo json_encode($e->getCode())."\n";
-    echo json_encode($e->getMessage())."\n";
+    $object[] = $e->getCode();
+    $object[] = $e->getMessage();
     // log to error log
   }
-  $output = ob_get_contents();
-  fwrite($f, "=== full output:\n".$output);
-  ob_end_clean();
+  $str = json_encode($object);
+  $object[0] = json_last_error();
+  if ($object[0]) $str = json_encode(encodeStrings($object));
+  fwrite($f, "=== full output:\n$str\n");
   fclose($f);
-  echo $output;
+  echo $str;
 }
