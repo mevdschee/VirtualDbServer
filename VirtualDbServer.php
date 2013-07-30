@@ -85,16 +85,24 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     if ($input_parameters!==false) $this->params = $input_parameters;
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
     $headers = array();
+    $headers[] = 'X-Session-Id: ' .$this->db->sessionId;
+    $headers[] = 'X-Request-Uri: '.$this->db->requestUri;
+    $headers[] = 'X-Client-Ip: '  .$this->db->clientIp;
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
     curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
-    $this->array = json_decode(curl_exec($this->ch));
-    $jsonError = array_shift($this->array);
-    if ($jsonError) $this->array = $this->decodeStrings($this->array);
+    $data = curl_exec($this->ch);
+    $this->array = json_decode($data);
     $this->position = 0;
     $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+    if ($this->array===null) {
+      $this->array = array(0,'PHP_E',$data);
+      $status = 500;
+    }
+    $jsonError = array_shift($this->array);
+    if ($jsonError) $this->array = $this->decodeStrings($this->array);
     if ($status==200) {
-      $this->errorCode = '0000';
+      $this->errorCode = '00000';
       $this->errorInfo = array();
       $this->rowCount = array_shift($this->array);
       $this->db->setLastInsertId(array_shift($this->array));
@@ -104,6 +112,12 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       $this->errorCode = array_shift($this->array);
       $this->errorInfo = array_shift($this->array);
       $result = false;
+    } else {
+      $errno = array_shift($this->array);
+      $errstr = array_shift($this->array);
+      $errfile = array_shift($this->array);
+      $errline = array_shift($this->array);
+      throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
     }
     return $result;
   }
@@ -311,6 +325,9 @@ class VirtualDbServer /* extends PDO */
   private $lastStatement;
   private $lastInsertId;
   private $attributes;
+  public $clientIp;
+  public $sessionId;
+  public $requestId;
   
   public function __construct($dsn, $username = false, $password = false, $attributes = array()) {
     $this->ch = curl_init();
@@ -333,6 +350,9 @@ class VirtualDbServer /* extends PDO */
     foreach($attributes as $index => $value) {
       $this->setAttribute($index,$value);
     }
+    $this->clientIp = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
+    $this->sessionId = session_id();
+    $this->requestUri = isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
   }
   
   public function setLastInsertId($value) {
