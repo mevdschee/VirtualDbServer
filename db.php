@@ -1,6 +1,5 @@
 <?php
 $f = fopen('db.log', 'a'); //debug access log
-require __DIR__.'/config.php';
 
 function exception_handler($e) {
   global $f;
@@ -41,6 +40,7 @@ $attributes = array();
 $clientIp = false;
 $sessionId = false;
 $requestUri = false;
+$auth = array();
 foreach ($headers as $name=>$value) {
   if (preg_match('/^X-(.*)-(.*)/',$name,$matches)) {
      switch($matches[1]) {
@@ -49,14 +49,17 @@ foreach ($headers as $name=>$value) {
        case 'Client': if ($matches[2]=='Ip') $clientIp = $value; break;
        case 'Session': if ($matches[2]=='Id') $sessionId = $value; break;
        case 'Request': if ($matches[2]=='Uri') $requestUri = $value; break;
+       case 'Auth': $auth[strtolower($matches[2])] = $value; break;
      }
   }
 }
+$database = $_GET['database'];
 $query = $_GET['query'];
-fwrite($f, "=== query:\n$clientIp\n$sessionId\n$requestUri\n$query\n");
+fwrite($f, "=== query:\n$clientIp\n$sessionId\n$requestUri\n$database\n$query\n");
 $serverAttrs[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8';
 $serverAttrs[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION;
-$db = new PDO($pdo_dsn,$pdo_username,$pdo_password,$serverAttrs);
+$dsn = "mysql:dbname=$database;host=localhost";
+$db = new PDO($dsn,$auth['username'],$auth['password'],$serverAttrs);
 $stmt = $db->prepare($query,$attributes);
 fwrite($f, "=== post:\n".var_export($_POST,true)."\n");
 foreach ($_POST as $parameter => $value)

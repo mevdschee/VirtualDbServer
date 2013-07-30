@@ -85,9 +85,11 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     if ($input_parameters!==false) $this->params = $input_parameters;
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
     $headers = array();
-    $headers[] = 'X-Session-Id: ' .$this->db->sessionId;
-    $headers[] = 'X-Request-Uri: '.$this->db->requestUri;
-    $headers[] = 'X-Client-Ip: '  .$this->db->clientIp;
+    $headers[] = 'X-Session-Id: '   .$this->db->sessionId;
+    $headers[] = 'X-Request-Uri: '  .$this->db->requestUri;
+    $headers[] = 'X-Client-Ip: '    .$this->db->clientIp;
+    $headers[] = 'X-Auth-Username: '.$this->db->username;
+    $headers[] = 'X-Auth-Password: '.$this->db->password;
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
     curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
@@ -321,10 +323,14 @@ class VirtualDbServer /* extends PDO */
   
   private $ch;
   private $url;
-  private $dbname;
   private $lastStatement;
   private $lastInsertId;
   private $attributes;
+  
+  public $username;
+  public $password;
+  public $database;
+ 
   public $clientIp;
   public $sessionId;
   public $requestId;
@@ -342,8 +348,10 @@ class VirtualDbServer /* extends PDO */
       list($key,$value) = explode('=',$param,2);
       $parameters[$key] = $value;
     }
-    $this->url = $parameters['host'];
-    $this->dbname = $parameters['dbname'];
+    $this->username = $username;
+    $this->password = $password;
+    $this->database = $parameters['dbname'];
+    $this->url = str_replace('__DATABASE__', $parameters['dbname'], $parameters['host']);
     $this->lastStatement = false;
     $this->lastInsertId = false;
     $this->attributes = array();
@@ -401,7 +409,7 @@ class VirtualDbServer /* extends PDO */
   
   public function prepare($statement,$attributes = array()) {
     $this->attributes = array_merge($this->attributes,$attributes);
-    curl_setopt ($this->ch, CURLOPT_URL, $this->url.urlencode($statement));
+    curl_setopt ($this->ch, CURLOPT_URL, str_replace('__QUERY__', urlencode($statement), $this->url));
     $this->lastStatement = new VirtualDbStatement($statement, $this, $this->ch, $attributes, $this->attributes);
     return $this->lastStatement;
   }

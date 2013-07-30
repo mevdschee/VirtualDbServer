@@ -2,6 +2,6 @@
 $pdo_dsn = 'mysql:dbname=database;host=localhost';
 $pdo_username = 'username';
 $pdo_password = 'password';
-$vdb_dsn = 'mysql:dbname=database;host=http://localhost/db.php?query=';
+$vdb_dsn = 'mysql:dbname=database;host=http://localhost/db.php?database=__DATABASE__&query=__QUERY__';
 $vdb_username = 'username';
 $vdb_password = 'password';
