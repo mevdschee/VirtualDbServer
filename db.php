@@ -1,7 +1,7 @@
 <?php
 function encodeStrings(&$str) {
   if (is_array($str)) return array_map(__METHOD__, $str);
-  if (is_string($str)) return utf8_encode($str);
+  if (is_string($str)) return base64_encode($str);
   return $str;
 }
 try {

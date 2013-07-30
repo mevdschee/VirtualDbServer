@@ -77,7 +77,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   
   private function decodeStrings(&$str) {
     if (is_array($str)) return array_map(__METHOD__, $str);
-    if (is_string($str)) return utf8_decode($str);
+    if (is_string($str)) return base64_decode($str);
     return $str;
   }
   
