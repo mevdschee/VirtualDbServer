@@ -84,21 +84,30 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   public function execute ($input_parameters = false) {
     if ($input_parameters!==false) $this->params = $input_parameters;
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
+    $timings = rtrim($this->db->sessionStorage,'&');
+    $this->db->sessionStorage = '';
     $headers = array();
     $headers[] = 'X-Session-Id: '   .$this->db->sessionId;
     $headers[] = 'X-Request-Uri: '  .$this->db->requestUri;
     $headers[] = 'X-Client-Ip: '    .$this->db->clientIp;
     $headers[] = 'X-Auth-Username: '.$this->db->username;
     $headers[] = 'X-Auth-Password: '.$this->db->password;
+    $headers[] = 'X-Transfer-Time: '.$timings;
     foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
     foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
     curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
-    $data = curl_exec($this->ch);
-    $this->array = json_decode($data);
+    $start = microtime(true);
+    $response = curl_exec($this->ch);
+    $time = round((microtime(true) - $start)*1000);
+    list($headers, $body) = explode("\r\n\r\n", $response, 2);
+    if (preg_match('/X-Request-Id: ([a-z0-9\-]+)/', $headers, $matches)) {
+      $this->db->sessionStorage.="$matches[1]=$time&";
+    }
+    $this->array = json_decode($body);
     $this->position = 0;
     $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
     if ($this->array===null) {
-      $this->array = array(0,'PHP_E',$data);
+      $this->array = array(0,'PHP_E',$body);
       $status = 500;
     }
     $jsonError = array_shift($this->array);
@@ -335,11 +344,14 @@ class VirtualDbServer /* extends PDO */
   public $sessionId;
   public $requestId;
   
+  public $sessionStorage;
+  
   public function __construct($dsn, $username = false, $password = false, $attributes = array()) {
     $this->ch = curl_init();
     curl_setopt ($this->ch, CURLOPT_POST, true);
     curl_setopt ($this->ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt ($this->ch, CURLOPT_COOKIEJAR, '/dev/null');
+    curl_setopt ($this->ch, CURLOPT_HEADER, true);
     curl_setopt ($this->ch, CURLOPT_RETURNTRANSFER, true);
     list($driver,$string) = explode(':',$dsn,2);
     $parameters = array();
@@ -361,6 +373,10 @@ class VirtualDbServer /* extends PDO */
     $this->clientIp = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
     $this->sessionId = session_id();
     $this->requestUri = isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
+    if (!isset($_SESSION['VirtualDbServer'])) {
+      $_SESSION['VirtualDbServer'] = '';
+    }
+    $this->sessionStorage =& $_SESSION['VirtualDbServer'];
   }
   
   public function setLastInsertId($value) {
