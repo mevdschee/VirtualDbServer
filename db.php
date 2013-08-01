@@ -53,7 +53,7 @@ $requestUri = false;
 $auth = array();
 $timings = array();
 foreach ($headers as $name=>$value) {
-  if (preg_match('/^X-(.*)-(.*)/',$name,$matches)) {
+  if (preg_match('/^X-([a-zA-Z]+)-([a-z0-9A-Z]+)/',$name,$matches)) {
      switch($matches[1]) {
        case 'Server': $serverAttrs[$matches[2]]=$value; break;
        case 'Statement': $attributes[$matches[2]]=$value; break;

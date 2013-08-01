@@ -314,19 +314,19 @@ class VirtualDbServer /* extends PDO */
 {
   /* PDO {
    done public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
-        public bool beginTransaction ( void )
-        public bool commit ( void )
+   done public bool beginTransaction ( void )
+   done public bool commit ( void )
    done public mixed errorCode ( void )
    done public array errorInfo ( void )
    done public int exec ( string $statement )
    done public mixed getAttribute ( int $attribute )
    done public static array getAvailableDrivers ( void )
-        public bool inTransaction ( void )
+   done public bool inTransaction ( void )
    done public string lastInsertId ([ string $name = NULL ] )
    done public PDOStatement prepare ( string $statement [, array $driver_options = array() ] )
    done public PDOStatement query ( string $statement )
    args public string quote ( string $string [, int $parameter_type = PDO::PARAM_STR ] )
-        public bool rollBack ( void )
+   done public bool rollBack ( void )
    done public bool setAttribute ( int $attribute , mixed $value )
    }*/
   
@@ -335,6 +335,7 @@ class VirtualDbServer /* extends PDO */
   private $lastStatement;
   private $lastInsertId;
   private $attributes;
+  private $inTransaction;
   
   public $username;
   public $password;
@@ -378,6 +379,25 @@ class VirtualDbServer /* extends PDO */
     }
     $this->sessionStorage =& $_SESSION['VirtualDbServer'];
   }
+  
+  public function beginTransaction() {
+    $inTransaction = $this->execute('BEGIN');
+    return $inTransaction;
+  }
+  
+  public function commit() {
+    $inTransaction = !$this->execute('COMMIT');
+    return !$inTransaction;
+  }
+  
+  public function rollBack() {
+    $inTransaction = !$this->execute('ROLLBACK');
+    return !$inTransaction;
+  }
+  
+  public function inTransaction() {
+    return $this->inTransaction;
+  }  
   
   public function setLastInsertId($value) {
     return $this->lastInsertId=$value;
@@ -430,15 +450,18 @@ class VirtualDbServer /* extends PDO */
     return $this->lastStatement;
   }
   
-  public function exec($statement) {
+  private function execute($statement) {
     $this->lastStatement = $this->prepare($statement);
-    $this->lastStatement->execute();
+    return $this->lastStatement->execute();
+  }
+  
+  public function exec($statement) {
+    $this->execute($statement);
     return $this->lastStatement->rowCount();
   }
   
   public function query($statement) {
-    $this->lastStatement = $this->prepare($statement);
-    $this->lastStatement->execute();
+    $this->execute($statement);
     return $this->lastStatement;
   }
   
