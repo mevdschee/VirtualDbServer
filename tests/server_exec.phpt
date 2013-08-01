@@ -10,8 +10,8 @@ $dbhs = array(
 );
 foreach ($dbhs as $dbh) { 
     echo "===".get_class($dbh)."===\n";
-    $stmt = $dbh->exec("DROP TABLE IF EXISTS `test`;");
-    $stmt = $dbh->exec("CREATE TABLE `test` (`key` varchar(255) NOT NULL,`val` varchar(255) NOT NULL) COLLATE 'utf8_general_ci';");
+    $dbh->exec("DROP TABLE IF EXISTS `test`;");
+    $dbh->exec("CREATE TABLE `test` (`key` varchar(255) NOT NULL,`val` varchar(255) NOT NULL) COLLATE 'utf8_general_ci';");
     $count = $dbh->exec("INSERT INTO `test` (`key`, val) VALUES ('k','v')");
     echo json_encode($count)."\n";
     $count = $dbh->exec("INSERT INTO `test` (`key`, val) VAL ('k','v')");

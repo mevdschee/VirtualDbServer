@@ -67,9 +67,10 @@ foreach ($headers as $name=>$value) {
 }
 $database = $_GET['database'];
 $query = $_GET['query'];
-$serverAttrs[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8';
+$serverAttrs[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8;SET session wait_timeout=3;';
 $serverAttrs[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION;
-$dsn = "mysql:dbname=$database;host=localhost";
+$serverAttrs[PDO::ATTR_PERSISTENT] = true;
+$dsn = "mysql:dbname=$database;port=3306;host=$requestId.6a.nl";
 $db = new PDO($dsn,$auth['username'],$auth['password'],$serverAttrs);
 $stmt = $db->prepare($query,$attributes);
 //fwrite($f, "=== post: ".var_export($_POST,true)." ");
