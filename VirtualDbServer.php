@@ -381,18 +381,18 @@ class VirtualDbServer /* extends PDO */
   }
   
   public function beginTransaction() {
-    $inTransaction = $this->execute('BEGIN');
-    return $inTransaction;
+    $this->inTransaction = $this->execute('BEGIN');
+    return $this->inTransaction;
   }
   
   public function commit() {
-    $inTransaction = !$this->execute('COMMIT');
-    return !$inTransaction;
+    $this->inTransaction = !$this->execute('COMMIT');
+    return !$this->inTransaction;
   }
   
   public function rollBack() {
-    $inTransaction = !$this->execute('ROLLBACK');
-    return !$inTransaction;
+    $this->inTransaction = !$this->execute('ROLLBACK');
+    return !$this->inTransaction;
   }
   
   public function inTransaction() {

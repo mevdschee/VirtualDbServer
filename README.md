@@ -23,19 +23,19 @@ Overview:
 
         PDO {
         done public __construct ( string $dsn [, string $username [, string $password [, array $driver_options ]]] )
-             public bool beginTransaction ( void )
-             public bool commit ( void )
+        done public bool beginTransaction ( void )
+        done public bool commit ( void )
         done public mixed errorCode ( void )
         done public array errorInfo ( void )
         done public int exec ( string $statement )
         done public mixed getAttribute ( int $attribute )
         done public static array getAvailableDrivers ( void )
-             public bool inTransaction ( void )
+        done public bool inTransaction ( void )
         done public string lastInsertId ([ string $name = NULL ] )
         done public PDOStatement prepare ( string $statement [, array $driver_options = array() ] )
         done public PDOStatement query ( string $statement )
         args public string quote ( string $string [, int $parameter_type = PDO::PARAM_STR ] )
-             public bool rollBack ( void )
+        done public bool rollBack ( void )
         done public bool setAttribute ( int $attribute , mixed $value )
         }
         
