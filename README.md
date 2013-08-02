@@ -11,7 +11,6 @@ Known Issues
 To do
 ----
 
- - Transaction support
  - Multiple rowsets: http://www.php.net/manual/en/pdostatement.nextrowset.php
  - debugDumpParams: http://www.php.net/manual/en/pdostatement.debugdumpparams.php
  - Support server attributes: http://php.net/manual/en/pdo.setattribute.php

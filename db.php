@@ -67,7 +67,7 @@ foreach ($headers as $name=>$value) {
 }
 $database = $_GET['database'];
 $query = $_GET['query'];
-$serverAttrs[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8;SET session wait_timeout=3;';
+$serverAttrs[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8';
 $serverAttrs[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION;
 $serverAttrs[PDO::ATTR_PERSISTENT] = true;
 $dsn = "mysql:dbname=$database;port=3306;host=$requestId.6a.nl";
