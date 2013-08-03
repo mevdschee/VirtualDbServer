@@ -45,7 +45,7 @@ Overview:
         args public bool bindValue ( mixed $parameter , mixed $value [, int $data_type = PDO::PARAM_STR ] )
         done public bool closeCursor ( void )
         done public int columnCount ( void )
-             public void debugDumpParams ( void )
+        done public void debugDumpParams ( void )
         done public string errorCode ( void )
         done public array errorInfo ( void )
         done public bool execute ([ array $input_parameters ] )
