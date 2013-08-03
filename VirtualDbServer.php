@@ -19,7 +19,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
    args public bool bindValue ( mixed $parameter , mixed $value [, int $data_type = PDO::PARAM_STR ] )
    done public bool closeCursor ( void )
    done public int columnCount ( void )
-        public void debugDumpParams ( void )
+   done public void debugDumpParams ( void )
    done public string errorCode ( void )
    done public array errorInfo ( void )
    done public bool execute ([ array $input_parameters ] )
@@ -307,6 +307,25 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     $this->fetchMode = $type;
     $this->fetchArgument =& $argument;
     $this->constructorArguments =& $constructorArguments;
+  }
+  
+  public function debugDumpParams() {
+    $len = strlen($this->queryString);
+    echo "SQL: [$len] $this->queryString\n";
+    $len = count($this->params);
+    echo "Params:  $len\n";
+    foreach ($this->params as $name=>$value) {
+      $len = strlen($name);
+      $num = $name[0]==':'?-1:$name-1;
+      if ($num==-1) echo "Key: Name: [$len] $name\n";
+      else echo "Key: Position #$num:\n";
+      echo "paramno=$num\n";
+      if ($num==-1) echo "name=[$len] \"$name\"\n";
+      else echo "name=[0] \"\"\n";
+      echo "is_param=1\n";
+      $type = is_int($value)?1:2;
+      echo "param_type=$type\n";
+    }    
   }
 }
 

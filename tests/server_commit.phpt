@@ -1,5 +1,5 @@
 --TEST--
-VirtualDbServer::beginTransaction()             @
+VirtualDbServer::commit()                       @
 --FILE--
 <?php
 require __DIR__.'/../VirtualDbServer.php';
