@@ -3,7 +3,7 @@ SET foreign_key_checks = 0;
 
 DROP TABLE IF EXISTS `calls`;
 CREATE TABLE `calls` (
-  `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `client_ip` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `application_ip` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `session_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
@@ -16,6 +16,8 @@ CREATE TABLE `calls` (
   `execution_time` int(11) NOT NULL,
   `query_time` int(11) NOT NULL,
   `query` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `json_error` int(11) NOT NULL,
+  `response_size` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `created_at_created_at_usec` (`created_at`,`created_at_usec`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
