@@ -395,7 +395,7 @@ class VirtualDbServer /* extends PDO */
     $this->clientIp = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
     $this->sessionId = session_id();
     $this->requestUri = isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
-    $this->userId = 'unknown';
+    $this->userId = '';
     if (!isset($_SESSION['VirtualDbServer'])) {
       $_SESSION['VirtualDbServer'] = '';
     }
