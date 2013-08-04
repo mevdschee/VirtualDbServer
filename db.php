@@ -106,6 +106,7 @@ foreach($timings as $id=>$t) {
   $r->rPush('timings', json_encode($val));
 }
 $id = guidv4();
+header('X-Request-Id: '.$id);
 $time = round((microtime(true) - $start)*1000);
 $applicationIp = $_SERVER['REMOTE_ADDR'];
 $mseconds = (int)(($start-(int)$start)*1000);
@@ -114,6 +115,5 @@ $responseSize = strlen($str);
 $val = array($id,$clientIp,$applicationIp,$sessionId,$userId,$requestUri,$requestId,$database,$start,$mseconds,$time,$timeQ,$query,$object[0],$responseSize);
 fwrite($f, 'calls: '.json_encode($val)."\n");
 $r->rPush('calls', json_encode($val));
-header('X-Request-Id: '.$id);
 fclose($f);
 echo $str;
