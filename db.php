@@ -49,6 +49,7 @@ function guidv4() {
 $headers = apache_request_headers();
 $serverAttrs = array();
 $attributes = array();
+$userId = false;
 $clientIp = false;
 $sessionId = false;
 $requestUri = false;
@@ -59,6 +60,7 @@ foreach ($headers as $name=>$value) {
      switch($matches[1]) {
        case 'Server': $serverAttrs[$matches[2]]=$value; break;
        case 'Statement': $attributes[$matches[2]]=$value; break;
+       case 'User': if ($matches[2]=='Id') $userId = $value; break;
        case 'Client': if ($matches[2]=='Ip') $clientIp = $value; break;
        case 'Session': if ($matches[2]=='Id') $sessionId = $value; break;
        case 'Request': if ($matches[2]=='Uri') $requestUri = $value; break;
@@ -99,18 +101,19 @@ if ($object[0]) $str = json_encode(encodeStrings($object));
 //fwrite($f, "=== full output: $str ");
 //fwrite($f, "=== timings\n");
 foreach($timings as $id=>$t) {
-  $val = "$t|$id";
-  //fwrite($f, "$val\n");
-  $r->rPush('timings', $val);
+  $val = array($t,$id);
+  fwrite($f, 'timings: '.json_encode($val)."\n");
+  $r->rPush('timings', json_encode($val));
 }
 $id = guidv4();
 $time = round((microtime(true) - $start)*1000);
 $applicationIp = $_SERVER['REMOTE_ADDR'];
-$useconds = ($start-(int)$start)*1000000;
+$useconds = (int)(($start-(int)$start)*1000000);
+$start = (int)$start;
 $responseSize = strlen($str);
-$val = "$id|$clientIp|$applicationIp|$sessionId|$requestUri|$requestId|$database|$start|$useconds|$time|$timeQ|$query|$object[0]|$responseSize";
-//fwrite($f, "$val\n");
-$r->rPush('calls', $val);
+$val = array($id,$clientIp,$applicationIp,$sessionId,$userId,$requestUri,$requestId,$database,$start,$useconds,$time,$timeQ,$query,$object[0],$responseSize);
+fwrite($f, 'calls: '.json_encode($val)."\n");
+$r->rPush('calls', json_encode($val));
 header('X-Request-Id: '.$id);
 fclose($f);
 echo $str;

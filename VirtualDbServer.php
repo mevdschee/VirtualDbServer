@@ -90,6 +90,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
     $headers[] = 'X-Session-Id: '   .$this->db->sessionId;
     $headers[] = 'X-Request-Uri: '  .$this->db->requestUri;
     $headers[] = 'X-Client-Ip: '    .$this->db->clientIp;
+    $headers[] = 'X-User-Id: '      .$this->db->userId;
     $headers[] = 'X-Auth-Username: '.$this->db->username;
     $headers[] = 'X-Auth-Password: '.$this->db->password;
     $headers[] = 'X-Transfer-Time: '.$timings;
@@ -363,6 +364,7 @@ class VirtualDbServer /* extends PDO */
   public $clientIp;
   public $sessionId;
   public $requestId;
+  public $userId;
   
   public $sessionStorage;
   
@@ -393,6 +395,7 @@ class VirtualDbServer /* extends PDO */
     $this->clientIp = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
     $this->sessionId = session_id();
     $this->requestUri = isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
+    $this->userId = 'unknown';
     if (!isset($_SESSION['VirtualDbServer'])) {
       $_SESSION['VirtualDbServer'] = '';
     }

@@ -7,6 +7,7 @@ CREATE TABLE `calls` (
   `client_ip` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `application_ip` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `session_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `user_id` varchar(255) CHARACTER SET utf8 COLLATE 'utf8_bin' NOT NULL,
   `request_uri` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `request_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `database` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
