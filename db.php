@@ -3,6 +3,8 @@ $start = microtime(true);
 session_start();
 $requestId = session_id();
 $f = fopen('db.log', 'a'); //debug access log
+$r = new Redis();
+$r->connect('localhost');
 
 function exception_handler($e) {
   global $f;
@@ -96,11 +98,18 @@ $object[0] = json_last_error();
 if ($object[0]) $str = json_encode(encodeStrings($object));
 //fwrite($f, "=== full output: $str ");
 //fwrite($f, "=== timings\n");
-foreach($timings as $id=>$t) fwrite($f, "$id=$t\n");
+foreach($timings as $id=>$t) {
+  $val = "$t|$id";
+  //fwrite($f, "$val\n");
+  $r->rPush('timings', $val);
+}
 $id = guidv4();
 $time = round((microtime(true) - $start)*1000);
-$serverIp = $_SERVER['REMOTE_ADDR'];
-fwrite($f, "$id $clientIp $serverIp $sessionId $requestUri $requestId $database $time $timeQ ".substr($query,0,40)."\n");
+$applicationIp = $_SERVER['REMOTE_ADDR'];
+$useconds = ($start-(int)$start)*1000000;
+$val = "$id|$clientIp|$applicationIp|$sessionId|$requestUri|$requestId|$database|$start|$useconds|$time|$timeQ|$query";
+//fwrite($f, "$val\n");
+$r->rPush('calls', $val);
 header('X-Request-Id: '.$id);
 fclose($f);
 echo $str;
