@@ -12,7 +12,7 @@ CREATE TABLE `calls` (
   `request_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `database` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `created_at` datetime NOT NULL,
-  `created_at_usec` int(11) NOT NULL,
+  `created_at_msec` int(11) NOT NULL,
   `call_time` int(11) DEFAULT NULL,
   `execution_time` int(11) NOT NULL,
   `query_time` int(11) NOT NULL,

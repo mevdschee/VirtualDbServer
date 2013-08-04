@@ -108,10 +108,10 @@ foreach($timings as $id=>$t) {
 $id = guidv4();
 $time = round((microtime(true) - $start)*1000);
 $applicationIp = $_SERVER['REMOTE_ADDR'];
-$useconds = (int)(($start-(int)$start)*1000000);
+$mseconds = (int)(($start-(int)$start)*1000);
 $start = (int)$start;
 $responseSize = strlen($str);
-$val = array($id,$clientIp,$applicationIp,$sessionId,$userId,$requestUri,$requestId,$database,$start,$useconds,$time,$timeQ,$query,$object[0],$responseSize);
+$val = array($id,$clientIp,$applicationIp,$sessionId,$userId,$requestUri,$requestId,$database,$start,$mseconds,$time,$timeQ,$query,$object[0],$responseSize);
 fwrite($f, 'calls: '.json_encode($val)."\n");
 $r->rPush('calls', json_encode($val));
 header('X-Request-Id: '.$id);
