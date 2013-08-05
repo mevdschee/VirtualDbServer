@@ -114,6 +114,6 @@ $start = (int)$start;
 $responseSize = strlen($str);
 $val = array($id,$clientIp,$applicationIp,$sessionId,$userId,$requestUri,$requestId,$database,$start,$mseconds,$time,$timeQ,$query,$object[0],$responseSize);
 fwrite($f, 'calls: '.json_encode($val)."\n");
-$r->rPush('calls', json_encode($val));
+$r->lPush('calls', json_encode($val));
 fclose($f);
 echo $str;

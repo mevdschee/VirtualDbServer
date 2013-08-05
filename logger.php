@@ -11,7 +11,7 @@ $callStatement = $dbh->prepare("INSERT INTO `calls` (`id`, `client_ip`, `applica
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?), ?, NULL, ?, ?, ?, ?, ?);");
 $timingStatement = $dbh->prepare("UPDATE `calls` SET `call_time` = ? WHERE `id` = ?;");
 while (true) {
-  list($type,$data) = $r->blPop(array('calls','timings'), 0);
+  list($type,$data) = $r->brPop(array('calls','timings'), 0);
   $data = json_decode($data);
   if ($type=='calls') {
     $callStatement->execute($data);
