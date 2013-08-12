@@ -1,14 +1,24 @@
 <?php
 $start = microtime(true);
 session_start();
-$requestId = session_id();
-$f = fopen('db.log', 'a'); //debug access log
+
 $r = new Redis();
 $r->connect('localhost');
 
+if (!isset($_SESSION['requestId'])) {
+  $requestId = $r->incr('#requests');
+  $_SESSION['requestId'] = $requestId;
+  header('X-req-id: '.$requestId);
+} else $requestId = $_SESSION['requestId'];
+
+function debug($str) {
+  $f = fopen('db.log', 'a'); //debug access log
+  fwrite($f, $str."\n");
+  fclose($f);
+}
+
 function exception_handler($e) {
-  global $f;
-  //fwrite($f, "=== ERROR: ".json_encode($e)."\n");
+  //debug("=== ERROR: ".json_encode($e));
   $object = array(0);
   $object[] = $e->getCode();
   if ($e instanceof PDOException && $e->errorInfo) {
@@ -22,8 +32,7 @@ function exception_handler($e) {
   }
   // log to error log
   $str = json_encode($object);
-  //fwrite($f, "=== full output: $str\n");
-  fclose($f);
+  //debug("=== full output: $str");
   die($str);
 }
 
@@ -39,33 +48,27 @@ function encodeStrings(&$str) {
   return $str;
 }
 
-function guidv4() {
-  $data = file_get_contents('/dev/urandom', NULL, NULL, 0, 16);
-  $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0010
-  $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-  return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
-}
-
 $headers = apache_request_headers();
 $serverAttrs = array();
 $attributes = array();
-$userId = false;
-$clientIp = false;
-$sessionId = false;
 $requestUri = false;
+$username = false;
+$sessionName = false;
+$clientIp = false;
 $auth = array();
-$timings = array();
+$timings = false;
 foreach ($headers as $name=>$value) {
-  if (preg_match('/^X-([a-zA-Z]+)-([a-z0-9A-Z]+)/',$name,$matches)) {
+  if (preg_match('/^(X-[a-z]+-[a-z]+)(-([0-9]+))?/',$name,$matches)) {
      switch($matches[1]) {
-       case 'Server': $serverAttrs[$matches[2]]=$value; break;
-       case 'Statement': $attributes[$matches[2]]=$value; break;
-       case 'User': if ($matches[2]=='Id') $userId = $value; break;
-       case 'Client': if ($matches[2]=='Ip') $clientIp = $value; break;
-       case 'Session': if ($matches[2]=='Id') $sessionId = $value; break;
-       case 'Request': if ($matches[2]=='Uri') $requestUri = $value; break;
-       case 'Auth': $auth[strtolower($matches[2])] = $value; break;
-       case 'Transfer': parse_str($value,$timings); break;
+       case 'X-pdo-serv': $serverAttrs[$matches[3]]=$value; break;
+       case 'X-pdo-stat': $attributes[$matches[3]]=$value; break;
+       case 'X-req-uri' : $requestUri = $value; break;
+       case 'X-req-user': $username = $value; break;
+       case 'X-ses-name': $sessionName = $value; break;
+       case 'X-ses-ip'  : $clientIp = $value; break;
+       case 'X-aut-user': $auth['username'] = $value; break;
+       case 'X-aut-pass': $auth['password'] = $value; break;
+       case 'X-ses-stor': $timings = $value; break;
      }
   }
 }
@@ -77,7 +80,7 @@ $serverAttrs[PDO::ATTR_PERSISTENT] = true;
 $dsn = "mysql:dbname=$database;port=3306;host=$requestId.6a.nl";
 $db = new PDO($dsn,$auth['username'],$auth['password'],$serverAttrs);
 $stmt = $db->prepare($query,$attributes);
-//fwrite($f, "=== post: ".var_export($_POST,true)." ");
+//debug("=== post: ".var_export($_POST,true)." ");
 foreach ($_POST as $parameter => $value)
 { if ($parameter[0]==':') $stmt->bindValue($parameter, $value);
   else $stmt->bindValue($parameter+1, $value);
@@ -98,22 +101,20 @@ if ($columnCount) {
 $str = json_encode($object);
 $object[0] = json_last_error();
 if ($object[0]) $str = json_encode(encodeStrings($object));
-//fwrite($f, "=== full output: $str ");
-//fwrite($f, "=== timings\n");
-foreach($timings as $id=>$t) {
-  $val = array($t,$id);
-  fwrite($f, 'timings: '.json_encode($val)."\n");
-  $r->rPush('timings', json_encode($val));
+//debug("=== full output: $str ");
+//debug("=== timings\n");
+if ($timings) {
+  debug('timings: '.$timings);
+  $r->lPush('timings', $timings);
 }
-$id = guidv4();
-header('X-Request-Id: '.$id);
-$time = round((microtime(true) - $start)*1000);
-$applicationIp = $_SERVER['REMOTE_ADDR'];
-$mseconds = (int)(($start-(int)$start)*1000);
-$start = (int)$start;
+$id = $r->incr('#queries');
+header('X-qry-id: '.$id);
+$serverIp = $_SERVER['REMOTE_ADDR'];
 $responseSize = strlen($str);
-$val = array($id,$clientIp,$applicationIp,$sessionId,$userId,$requestUri,$requestId,$database,$start,$mseconds,$time,$timeQ,$query,$object[0],$responseSize);
-fwrite($f, 'calls: '.json_encode($val)."\n");
+$mseconds = (int)(($start-(int)$start)*1000);
+$time = round((microtime(true) - $start)*1000);
+$start = (int)$start;
+$val = array($id,$clientIp,$serverIp,$sessionName,$username,$requestId,$requestUri,$database,$auth['username'],$start,$mseconds,$time,$timeQ,$query,$object[0],$responseSize);
+debug('calls: '.json_encode($val));
 $r->lPush('calls', json_encode($val));
-fclose($f);
 echo $str;

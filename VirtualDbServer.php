@@ -84,26 +84,34 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   public function execute ($input_parameters = false) {
     if ($input_parameters!==false) $this->params = $input_parameters;
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
-    $timings = rtrim($this->db->sessionStorage,'&');
-    $this->db->sessionStorage = '';
     $headers = array();
-    $headers[] = 'X-Session-Id: '   .$this->db->sessionId;
-    $headers[] = 'X-Request-Uri: '  .$this->db->requestUri;
-    $headers[] = 'X-Client-Ip: '    .$this->db->clientIp;
-    $headers[] = 'X-User-Id: '      .$this->db->userId;
-    $headers[] = 'X-Auth-Username: '.$this->db->username;
-    $headers[] = 'X-Auth-Password: '.$this->db->password;
-    $headers[] = 'X-Transfer-Time: '.$timings;
-    foreach ($this->attributes as $name=>$value) $headers[] = "X-Statement-$name: $value";
-    foreach ($this->serverAttrs as $name=>$value) $headers[] = "X-Server-$name: $value";
+    $headers[] = 'X-req-id: '  .$this->db->requestId;
+    $headers[] = 'X-req-uri: ' .$this->db->requestUri;
+    $headers[] = 'X-ses-name: '.$this->db->sessionName;
+    $headers[] = 'X-ses-ip: '  .$this->db->clientIp;
+    $headers[] = 'X-req-user: '.$this->db->userId;
+    $headers[] = 'X-aut-user: '.$this->db->username;
+    $headers[] = 'X-aut-pass: '.$this->db->password;
+    $headers[] = 'X-ses-stor: '.$this->db->sessionStorage;
+    $this->db->sessionStorage = '';
+    foreach ($this->attributes as $number=>$value) $headers[] = "X-pdo-stat-$number: $value";
+    foreach ($this->serverAttrs as $number=>$value) $headers[] = "X-pdo-serv-$number: $value";
     curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
     $start = microtime(true);
     $response = curl_exec($this->ch);
     $time = round((microtime(true) - $start)*1000);
     list($headers, $body) = explode("\r\n\r\n", $response, 2);
-    if (preg_match('/X-Request-Id: ([a-z0-9\-]+)/', $headers, $matches)) {
-      $this->db->sessionStorage.="$matches[1]=$time&";
+    $hits = preg_match_all('/(X-[a-z]+-[a-z]+): (.*)\r/', $headers, $matches);
+    $queryId = false;
+    for ($i=0;$i<$hits;$i++) {
+      $key = $matches[1][$i];
+      $val = $matches[2][$i];
+      switch ($key) {
+        case 'X-qry-id': $queryId = $val; break;
+        case 'X-req-id': $this->db->requestId = $val; break;
+      }
     }
+    if ($queryId) $this->db->sessionStorage.="$time|$queryId&";
     $this->array = json_decode($body);
     $this->position = 0;
     $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
@@ -129,6 +137,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
       $errstr = array_shift($this->array);
       $errfile = array_shift($this->array);
       $errline = array_shift($this->array);
+      die("$errstr, $errno, 0, $errfile, $errline");
       throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
     }
     return $result;
@@ -362,7 +371,7 @@ class VirtualDbServer /* extends PDO */
   public $database;
  
   public $clientIp;
-  public $sessionId;
+  public $sessionName;
   public $requestId;
   public $userId;
   
@@ -393,14 +402,36 @@ class VirtualDbServer /* extends PDO */
       $this->setAttribute($index,$value);
     }
     $this->clientIp = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
-    $this->sessionId = session_id();
+    $this->sessionName = session_id();
+    $this->requestId = false;
     $this->requestUri = isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
     $this->userId = '';
     if (!isset($_SESSION['VirtualDbServer'])) {
       $_SESSION['VirtualDbServer'] = '';
     }
     $this->sessionStorage =& $_SESSION['VirtualDbServer'];
+    if ($this->requestUri) {
+      register_shutdown_function(array($this,'shutdown'));
+    }
   }
+  
+  public function shutdown() {
+    $time = false;
+    if (isset($_SERVER['REQUEST_TIME_FLOAT'])) {
+      $time = (int)((microtime(true)-$_SERVER['REQUEST_TIME_FLOAT'])*1000);
+    }
+    if ($this->requestId!==false) {
+      $timeUrl = preg_replace('/db\.php.*/','time.php',$this->url);
+      $now = time();
+      $javascript = <<<END_OF_SCRIPT
+var duration = performance.timing.responseEnd - performance.timing.requestStart;
+var url = "$timeUrl?request=" + duration + "|$time|$this->requestId&session=$this->sessionStorage";
+END_OF_SCRIPT;
+      echo "<script type=\"text/javascript\">\n$javascript\n";
+      echo "if (performance.navigation.type!=2) document.write('<script src=\"'+url+'\" defer><'+'/script>');\n";
+      echo "</script>";
+    }
+  }  
   
   public function beginTransaction() {
     $this->inTransaction = $this->execute('BEGIN');
