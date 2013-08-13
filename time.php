@@ -7,7 +7,7 @@ function debug($str) {
   fwrite($f, $str."\n");
   fclose($f);
 }
-$str = $_GET['request'];
-$r->lPush('times', $str);
 $str = $_GET['session'];
-$r->lPush('timings', $str);
+if ($str) $r->lPush('timings', $str);
+$str = $_GET['request'];
+if ($str) $r->lPush('times', $str);

@@ -15,7 +15,7 @@ $findRequest = $dbh->prepare("SELECT id FROM `requests` WHERE `id` = ?");
 $addRequest = $dbh->prepare("INSERT INTO `requests` (`id`, `database`, `created_at`, `created_at_msec`, `session_id`, `username`, `request_uri`) VALUES (?, ?, FROM_UNIXTIME(?), ?, ?, ?, ?);");
 $updateRequestTimes = $dbh->prepare("UPDATE `requests` SET `call_time` = ?, `execution_time` = ? WHERE `id` = ?");
 $findQuery = $dbh->prepare("SELECT id FROM `queries` WHERE `id` = ?");
-$addQuery = $dbh->prepare("INSERT INTO `queries` (`id`, `database`, `created_at`, `created_at_msec`, `request_id`, `call_time`, `execution_time`, `query_time`, `query`, `json_error`, `response_size`) VALUES (?, ?, FROM_UNIXTIME(?), ?, ?, NULL, ?, ?, ?, ?, ?);");
+$addQuery = $dbh->prepare("INSERT INTO `queries` (`id`, `database`, `created_at`, `created_at_msec`, `request_id`, `execution_time`, `query_time`, `query`, `json_error`, `response_size`) VALUES (?, ?, FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?);");
 $updateQueryCallTime = $dbh->prepare("UPDATE `queries` SET `call_time` = ? WHERE `id` = ?");
 while (true) {
   list($type,$data) = $r->brPop(array('calls','timings','times'), 0);
@@ -44,7 +44,9 @@ while (true) {
     if (!$findQuery->rowCount()) {
       $addQuery->execute(array($queryId,$database,$start,$mseconds,$requestId,$time,$timeQ,$query,$jsonError,$responseSize));
     }
+    //echo "$queryId,$clientIp,$serverIp,$sessionName,$username,$requestId,$requestUri,$database,$dbuser,$start,$mseconds,$time,$timeQ,$query,$jsonError,$responseSize\n";
   } elseif ($type=='timings') {
+    //echo "$type,$data\n";
     $records = explode('&',rtrim($data,'&'));
     foreach ($records as $record) {
       $fields = explode('|',$record);
