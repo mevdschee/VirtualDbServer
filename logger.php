@@ -1,5 +1,8 @@
 <?php
 ini_set('default_socket_timeout', -1);
+$fp = fopen('logger.pid',"w");
+fwrite($fp, getmypid());
+if (!flock($fp, LOCK_EX | LOCK_NB)) die("already running?\n");
 $r = new Redis();
 $r->connect('localhost');
 $dsn = "mysql:dbname=virtualdbserver;host=localhost";
@@ -57,4 +60,3 @@ while (true) {
     $updateRequestTimes->execute($fields);
   }
 }
-
