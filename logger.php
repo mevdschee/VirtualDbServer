@@ -1,8 +1,10 @@
 <?php
 ini_set('default_socket_timeout', -1);
-$fp = fopen('logger.pid',"w");
-fwrite($fp, getmypid());
+$fp = fopen('logger.pid',"c");
+if (!$fp) die("Can't create file 'logger.pid'\n");
 if (!flock($fp, LOCK_EX | LOCK_NB)) die("already running?\n");
+ftruncate($fp, 0);
+fwrite($fp, getmypid());
 $r = new Redis();
 $r->connect('localhost');
 $dsn = "mysql:dbname=virtualdbserver;host=localhost";
