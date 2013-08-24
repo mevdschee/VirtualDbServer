@@ -82,7 +82,14 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   }
   
   public function execute ($input_parameters = false) {
-    if ($input_parameters!==false) $this->params = $input_parameters;
+    if ($input_parameters!==false) {
+      $keys = array_keys($input_parameters);
+      if (substr($keys[0],0,1)!=':') {
+        $vals = array_values($input_parameters);
+        $input_parameters = array_combine(range(1, count($vals)), $vals);
+      }
+      $this->params = $input_parameters;
+    }    
     curl_setopt ($this->ch, CURLOPT_POSTFIELDS, http_build_query($this->params));
     $headers = array();
     $headers[] = 'X-req-id: '  .$this->db->requestId;
