@@ -84,7 +84,7 @@ class VirtualDbStatement /* extends PDOStatement */ implements Iterator {
   public function execute ($input_parameters = false) {
     if ($input_parameters!==false) {
       $keys = array_keys($input_parameters);
-      if (substr($keys[0],0,1)!=':') {
+      if (!$keys[0]) {
         $vals = array_values($input_parameters);
         $input_parameters = array_combine(range(1, count($vals)), $vals);
       }
