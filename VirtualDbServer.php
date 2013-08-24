@@ -384,17 +384,20 @@ class VirtualDbServer /* extends PDO */
     curl_setopt ($this->ch, CURLOPT_COOKIEJAR, '/dev/null');
     curl_setopt ($this->ch, CURLOPT_HEADER, true);
     curl_setopt ($this->ch, CURLOPT_RETURNTRANSFER, true);
-    list($driver,$string) = explode(':',$dsn,2);
-    $parameters = array();
-    $params = explode(';',$string);
-    foreach ($params as $param) {
-      list($key,$value) = explode('=',$param,2);
-      $parameters[$key] = $value;
+    if (!is_array($dsn)) {
+      list($driver,$string) = explode(':',$dsn,2);
+      $dsn = array();
+      $params = explode(';',$string);
+      foreach ($params as $param) {
+        list($key,$value) = explode('=',$param,2);
+        $dsn[$key] = $value;
+      }
+      $dsn['driver'] = $driver;
     }
     $this->username = $username;
     $this->password = $password;
-    $this->database = $parameters['dbname'];
-    $this->url = str_replace('__DATABASE__', $parameters['dbname'], $parameters['host']);
+    $this->database = $dsn['dbname'];
+    $this->url = str_replace('__DATABASE__', $dsn['dbname'], $dsn['host']);
     $this->lastStatement = false;
     $this->lastInsertId = false;
     $this->attributes = array();

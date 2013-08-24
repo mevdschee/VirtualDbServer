@@ -81,9 +81,11 @@ $dsn = "mysql:dbname=$database;port=3306;host=$requestId.6a.nl";
 $db = new PDO($dsn,$auth['username'],$auth['password'],$serverAttrs);
 $stmt = $db->prepare($query,$attributes);
 //debug("=== post: ".var_export($_POST,true)." ");
+$parameterIndex = 1;
 foreach ($_POST as $parameter => $value)
 { if ($parameter[0]==':') $stmt->bindValue($parameter, $value);
-  else $stmt->bindValue($parameter+1, $value);
+  else $stmt->bindValue($parameterIndex, $value);
+  $parameterIndex++;
 }
 $startQ = microtime(true);
 $stmt->execute();
