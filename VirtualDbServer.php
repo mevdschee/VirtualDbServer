@@ -430,7 +430,15 @@ class VirtualDbServer /* extends PDO */
     if (isset($_SERVER['REQUEST_TIME_FLOAT'])) {
       $time = (int)((microtime(true)-$_SERVER['REQUEST_TIME_FLOAT'])*1000);
     }
-    if ($this->requestId!==false) {
+    $html = false;
+    $headers = headers_list();
+    foreach ($headers as $header) {
+      if (preg_match('/Content-Type:(.*)/',$header,$matches)) {
+        $html = preg_match('/html/i',$matches[1]);
+        break;
+      }
+    }
+    if ($this->requestId!==false && $html) {
       $timeUrl = preg_replace('/db\.php.*/','time.php',$this->url);
       $now = time();
       $javascript = <<<END_OF_SCRIPT
